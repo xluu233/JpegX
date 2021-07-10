@@ -14,6 +14,7 @@ object JepgTurbo {
         System.loadLibrary("jepg_compress")
     }
 
-    //external fun compressBitmap(bitmap: Bitmap): String
+    external fun compressBitmap2File(bitmap: Bitmap,filePath:String): Boolean
+
 
 }

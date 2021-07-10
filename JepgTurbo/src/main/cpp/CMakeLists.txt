@@ -11,6 +11,7 @@ add_library( # Sets the name of the library.
         jepg_compress
         SHARED
 
+        main.cpp
         jpeghelper/JpegHelper.h
         jpeghelper/JpegHelper.cpp
         )
