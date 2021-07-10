@@ -1,0 +1,3 @@
+include ':JepgTurbo'
+include ':app'
+rootProject.name = "JpegX"
