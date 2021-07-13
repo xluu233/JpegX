@@ -51,4 +51,16 @@ dependencies {
 
     implementation project(path: ':JepgTurbo')
 
+
+    //Rxpermissions  https://github.com/tbruyelle/RxPermissions
+    implementation 'com.github.tbruyelle:rxpermissions:0.12'
+
+    //rxjava
+    api "io.reactivex.rxjava3:rxjava:3.0.10"
+    api 'io.reactivex.rxjava3:rxandroid:3.0.0'
+
+    //Kotlin协程核心库
+    api "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.4.3"
+    api "org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.2"
+
 }

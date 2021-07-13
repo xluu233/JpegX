@@ -61,10 +61,84 @@ unsigned char* as_unsigned_char_array(JNIEnv *env, jbyteArray array) {
     return buf;
 }
 
+extern "C" {
 
-extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_xlu_jepgturbo_JepgTurbo_compressBitmap2File(JNIEnv *env, jobject thiz, jobject bitmap,jstring file_path) {
+Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap2File(JNIEnv *env, jobject thiz, jobject bitmap, jstring file_path) {
+
+
+
+}
+
+JNIEXPORT void JNICALL
+Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobject bitmap,
+                                                jint quality, jstring filePath) {
+
+    const char *location = env->GetStringUTFChars(filePath,NULL);
+
+    //LOGD("location is %s",location);
+
+    int ret;
+    int color;
+    BYTE r;
+    BYTE g;
+    BYTE b;
+    BYTE *data;
+    BYTE *tmpData;
+    BYTE *bitmapPixels;
+    AndroidBitmapInfo bitmapInfo;
+
+    if ((ret = AndroidBitmap_getInfo(env, bitmap, &bitmapInfo)) < 0) {
+        LOGD("get bitmap info failed");
+    }
+    if (bitmapInfo.format == ANDROID_BITMAP_FORMAT_RGBA_8888) {
+        //int32_t
+        LOGD("format is rgba_8888");
+    }
+    if ((ret = AndroidBitmap_lockPixels(env, bitmap, reinterpret_cast<void **>(&bitmapPixels))) <0) {
+        LOGD("lock pixels failed");
+    }
+
+    int width = bitmapInfo.width;
+    int height = bitmapInfo.height;
+    LOGD("wid id %d , height is %d",width,height);
+
+    //setup1 : 将bitmap转换为Byte
+    long start = getCurrentTime();
+    data = static_cast<BYTE *>(malloc(width * height * 3));
+    tmpData = data;
+    for (int i = 0; i < height; i++) {
+        for (int j = 0; j < width; j++) {
+            color = *((int *) bitmapPixels);
+            r = ((color & 0x00FF0000) >> 16);
+            g = ((color & 0x0000FF00) >> 8);
+            b = color & 0x000000FF;
+            *data = b;
+            *(data + 1) = g;
+            *(data + 2) = r;
+            data = data + 3;
+            bitmapPixels += 4;
+        }
+    }
+    long end = getCurrentTime();
+    long delta = end - start;
+    LOGD("tran bitmap is %ld ms ",delta);
+
+    //setup2 : 开始压缩
+    JpegHelper jpegHelper;
+    int resultCode = jpegHelper.GenerateBitmap2Jpeg(tmpData, width, height,quality,location);
+    if(resultCode==0){
+        LOGD("Generate error");
+    } else{
+        LOGD("Generate success");
+    }
+    long end2 = getCurrentTime();
+    long delta2 = end2 - end;
+    LOGD("compress time is %ld ms ",delta2);
+
+    free(tmpData);
+    AndroidBitmap_unlockPixels(env, bitmap);
+}
 
 
 

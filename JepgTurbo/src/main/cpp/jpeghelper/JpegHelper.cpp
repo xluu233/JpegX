@@ -171,7 +171,7 @@ int JpegHelper::write_jpeg_file(unsigned char *image_buffer, int quality, int im
 }
 
 int JpegHelper::GenerateBitmap2Jpeg(BYTE *data, int w, int h, int quality, const char *outfilename) {
-    LOGD("location is %s",outfilename);
+
     int nComponent = 3;
     struct jpeg_compress_struct jcs;
     struct my_error_mgr jem;
@@ -183,8 +183,7 @@ int JpegHelper::GenerateBitmap2Jpeg(BYTE *data, int w, int h, int quality, const
     }
     jpeg_create_compress(&jcs);
 
-    FILE* f = fopen("/storage/emulated/0/Android/data/com.siliconmotion.usbdisplay/cache/mi8-compress.jpg", "wb"); ////打开（建立）一个可写的文件
-    //FILE *f = fopen(outfilename,"w");
+    FILE* f = fopen(outfilename, "wb");
     if (f == NULL) {
         LOGD("file open failed");
         return 0;
@@ -201,8 +200,6 @@ int JpegHelper::GenerateBitmap2Jpeg(BYTE *data, int w, int h, int quality, const
     jpeg_set_defaults(&jcs);
     jcs.optimize_coding = false;
     jpeg_set_quality(&jcs, quality, true);
-
-    LOGD("optimize==ture");
     jpeg_start_compress(&jcs, TRUE);
 
     JSAMPROW row_pointer[1];
@@ -215,15 +212,9 @@ int JpegHelper::GenerateBitmap2Jpeg(BYTE *data, int w, int h, int quality, const
         jpeg_write_scanlines(&jcs, row_pointer, 1);
     }
 
-    if (jcs.optimize_coding) {
-        LOGD("optimize==ture");
-    } else {
-        LOGD("optimize==false");
-    }
     jpeg_finish_compress(&jcs);
     jpeg_destroy_compress(&jcs);
     fclose(f);
-
     return 1;
 }
 
