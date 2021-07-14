@@ -17,15 +17,12 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.xlu.compress.databinding.ActivityMainBinding
 import com.xlu.compress.utils.BitmapUtil
-import com.xlu.compress.utils.BitmapUtil.compressQuality
 import com.xlu.compress.utils.FileSizeUtil
 import com.xlu.compress.utils.FileUtil
 import com.xlu.jepgturbo.JpegTurbo
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.*
 import java.io.*
+import java.nio.ByteBuffer
 
 
 const val PERMISSION_CAMERA_REQUEST_CODE:Int = 1001
@@ -49,6 +46,7 @@ class MainActivity : AppCompatActivity() {
 
     private var file:File ?= null
     private var uri: Uri ?= null
+    private var bitmap:Bitmap ?= null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -59,7 +57,6 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * TODO 从相册选择图片
-     * @param view
      */
     fun ChooseImage(view: View) {
         val intentToPickPic = Intent(Intent.ACTION_PICK, null)
@@ -70,12 +67,11 @@ class MainActivity : AppCompatActivity() {
 
     /**
      * TODO 打开相机拍照
-     * @param view
      */
     fun OpenCamera(view: View) {
         val hasCameraPermission = ContextCompat.checkSelfPermission(
-            application,
-            Manifest.permission.CAMERA
+                application,
+                Manifest.permission.CAMERA
         )
         if (hasCameraPermission == PackageManager.PERMISSION_GRANTED) {
             //调起相机拍照。
@@ -91,9 +87,9 @@ class MainActivity : AppCompatActivity() {
         } else {
             //申请权限
             ActivityCompat.requestPermissions(
-                this,
-                arrayOf(Manifest.permission.CAMERA),
-                PERMISSION_CAMERA_REQUEST_CODE
+                    this,
+                    arrayOf(Manifest.permission.CAMERA),
+                    PERMISSION_CAMERA_REQUEST_CODE
             )
         }
     }
@@ -125,45 +121,43 @@ class MainActivity : AppCompatActivity() {
         imageBefore.setImageURI(uri)
 
         val outFileSize = FileSizeUtil.getFolderOrFileSize(
-            file.absolutePath,
-            FileSizeUtil.SIZETYPE_KB
+                file.absolutePath,
+                FileSizeUtil.SIZETYPE_KB
         )
         binding.imageInfoBefore.text = "原图\n文件大小：$outFileSize KB"
 
-        compressFile(file)
+        bitmap = BitmapUtil.convertToBitmap(file)
+        if (bitmap == null) return
+
+        compressFile()
     }
 
     /**
      * TODO LibJpegTurbo压缩Bitmap
      */
     @SuppressLint("SetTextI18n")
-    private fun compressFile(file: File) = CoroutineScope(Dispatchers.IO).launch{
+    private fun compressFile() = CoroutineScope(Dispatchers.IO).launch{
         //创建输出文件
-        val outputFile = FileUtil.createJpegFile(
-            this@MainActivity,
-            "${file.name.replace(".jpg", "")}_compress.jpg"
-        )
-
-        val bitmap = BitmapUtil.convertToBitmap(file)
+        val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress.jpg")
 
         val time = System.currentTimeMillis()
-        if (bitmap!=null){
-            JpegTurbo.compressBitmap(
-                bitmap = bitmap,
-                filePath = outputFile.absolutePath
-            )
-        }
 
+        JpegTurbo.compressBitmap(
+                bitmap = bitmap!!,
+                outputFilePath = outputFile.absolutePath
+        )
+
+        //压缩后的文件大小
         val outFileSize = FileSizeUtil.getFolderOrFileSize(
-            outputFile.absolutePath,
-            FileSizeUtil.SIZETYPE_KB
+                outputFile.absolutePath,
+                FileSizeUtil.SIZETYPE_KB
         )
 
         withContext(Dispatchers.Main){
             binding.imageViewAfter.setImageURI(Uri.parse(outputFile.absolutePath))
             binding.imageInfoAfter.text = "JpegTurbo压缩\n文件大小：$outFileSize KB\n压缩耗时:${System.currentTimeMillis()-time}ms"
 
-            compressFileAndroid(file)
+            compressFileAndroid()
         }
     }
 
@@ -172,14 +166,11 @@ class MainActivity : AppCompatActivity() {
      * TODO Android原生压缩 File
      * @param file
      */
-    private fun compressFileAndroid(file: File) = CoroutineScope(Dispatchers.IO).launch{
+    private fun compressFileAndroid() = CoroutineScope(Dispatchers.IO).launch{
         //创建输出文件
-        val outputFile = FileUtil.createJpegFile(
-            this@MainActivity,
-            "${file.name.replace(".jpg", "")}_compress2.jpg"
-        )
-
+        val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress2.jpg")
         val bitmap = BitmapUtil.convertToBitmap(file)
+        if (bitmap == null) this.cancel()
 
         //Android原生压缩设置 quality<90 之后会有明显的质量下降
         try {
@@ -195,7 +186,38 @@ class MainActivity : AppCompatActivity() {
         withContext(Dispatchers.Main){
             binding.imageViewAfter2.setImageBitmap(bitmap)
             binding.imageInfoAfter2.text = "Android原生压缩\n文件大小：$outFileSize KB\n"
+
+            compressByteBuffer2Jpeg()
         }
+    }
+
+
+    private fun compressByteBuffer2Jpeg() = CoroutineScope(Dispatchers.IO).launch{
+        //模拟生成ByteBuffer
+        val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress3.jpg")
+        var byte : ByteArray ?= null
+        val bitmap = BitmapUtil.convertToBitmap(file)
+
+        bitmap?.let {
+            byte = BitmapUtil.convertToByteArray(it)
+        }
+        if (byte== null || bitmap==null) this.cancel()
+
+
+        val resultCode = JpegTurbo.compressByte2Jpeg(
+                byte = byte!!,
+                height = bitmap!!.height,
+                width = bitmap.width,
+                outputFilePath = outputFile.absolutePath
+        )
+
+
+        val outFileSize = FileSizeUtil.getFolderOrFileSize(outputFile.absolutePath, FileSizeUtil.SIZETYPE_KB)
+        withContext(Dispatchers.Main){
+            binding.imageViewAfter2.setImageURI(Uri.parse(outputFile.absolutePath))
+            binding.imageInfoAfter2.text = "Android原asdasdas生压缩\n文件大小：$outFileSize KB\n"
+        }
+
     }
 
 }

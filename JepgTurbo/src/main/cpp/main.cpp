@@ -61,22 +61,13 @@ unsigned char* as_unsigned_char_array(JNIEnv *env, jbyteArray array) {
     return buf;
 }
 
-extern "C" {
 
+
+extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap2File(JNIEnv *env, jobject thiz, jobject bitmap, jstring file_path) {
-
-
-
-}
-
-JNIEXPORT void JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobject bitmap,
-                                                jint quality, jstring filePath) {
+Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobject bitmap,jint _width,jint _height,jint quality, jstring filePath) {
 
     const char *location = env->GetStringUTFChars(filePath,NULL);
-
-    //LOGD("location is %s",location);
 
     int ret;
     int color;
@@ -92,15 +83,25 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobje
         LOGD("get bitmap info failed");
     }
     if (bitmapInfo.format == ANDROID_BITMAP_FORMAT_RGBA_8888) {
-        //int32_t
         LOGD("format is rgba_8888");
     }
     if ((ret = AndroidBitmap_lockPixels(env, bitmap, reinterpret_cast<void **>(&bitmapPixels))) <0) {
         LOGD("lock pixels failed");
     }
 
-    int width = bitmapInfo.width;
-    int height = bitmapInfo.height;
+    int width;
+    int height;
+    if (0 == _width){
+        width = bitmapInfo.width;
+    } else{
+        width = _width;
+    }
+
+    if (0 == _height){
+        height = bitmapInfo.height;
+    } else{
+        height = _height;
+    }
     LOGD("wid id %d , height is %d",width,height);
 
     //setup1 : 将bitmap转换为Byte
@@ -138,8 +139,106 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobje
 
     free(tmpData);
     AndroidBitmap_unlockPixels(env, bitmap);
+    return resultCode;
 }
 
 
+extern "C"
+JNIEXPORT jbyteArray JNICALL
+Java_com_xlu_jepgturbo_JpegTurbo_compressByteBuffer(JNIEnv *env, jobject thiz, jobject byte_buffer,
+        jint width, jint height, jint quality) {
+
+
+    uint8_t * rgbBuffer = ( uint8_t *) env->GetDirectBufferAddress(byte_buffer);
+
+    tjhandle handle = NULL;
+    int flags = 0;
+    int pad = 4; //字节对齐
+    int subsamp = TJSAMP_420;
+    int pixelfmt = TJPF_RGBA;//TJPF_RGBA;//TJPF_ARGB;
+
+    handle=tjInitCompress();
+    if (NULL == handle){
+        return NULL;
+    }
+
+    unsigned char* srcbuf = rgbBuffer;
+    unsigned char* dstbuf = NULL;
+    unsigned long outjpg_size = 0;
+
+
+    int ret = tjCompress2(handle, srcbuf, width,0, height, pixelfmt, &dstbuf, &outjpg_size, subsamp, quality, flags);
+    tjDestroy(handle);
+
+    if (0 != ret) {
+        return NULL;
+    }
+
+    jbyteArray data = env->NewByteArray(outjpg_size);
+    env->SetByteArrayRegion(data, 0, outjpg_size, (jbyte *)dstbuf);
+
+    tjFree(dstbuf);
+    return data;
+}
+
+extern "C"
+JNIEXPORT jbyteArray JNICALL
+Java_com_xlu_jepgturbo_JpegTurbo_compressByteArray(JNIEnv *env, jobject thiz, jbyteArray byte,
+                                                   jint width, jint height, jint quality) {
+
+    jbyte * rgbBuffer = env->GetByteArrayElements(byte, 0);
+
+    tjhandle handle = NULL;
+    int flags = 0;
+    int pad = 4; //字节对齐
+    int subsamp = TJSAMP_420;
+    int pixelfmt = TJPF_RGBA;
+
+    handle = tjInitCompress();
+    if (NULL == handle){
+        return NULL;
+    }
+
+    unsigned char* srcbuf = (unsigned char*)rgbBuffer;
+    unsigned char *dstBuf = NULL;
+    unsigned long outjpg_size;
+
+
+    int ret = tjCompress2(handle, srcbuf, width, 0, height, pixelfmt, &dstBuf, &outjpg_size, subsamp, quality, flags);
+
+
+    tjDestroy(handle);
+    if (0 != ret) {
+        return NULL;
+    }
+
+    jbyteArray data = env->NewByteArray(outjpg_size);
+    env->SetByteArrayRegion(data, 0, outjpg_size, reinterpret_cast<const jbyte *>(dstBuf));
+
+    free(dstBuf);
+    env->ReleaseByteArrayElements(byte, rgbBuffer, 0);
+
+    return data;
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_xlu_jepgturbo_JpegTurbo_compressByte2Jpeg(JNIEnv *env, jobject thiz, jbyteArray byte,
+                                                   jint width, jint height, jint quality,
+                                                   jstring output_file_path) {
+
+    LOGD("compressByte2Jpeg");
+    const char *location = env->GetStringUTFChars(output_file_path,NULL);
+    jbyte * rgbBuffer = env->GetByteArrayElements(byte, 0);
+    //jbyte *bytebuffer = env->GetByteArrayElements(byte, 0);
+
+    unsigned char *srcbuf = (unsigned char*)rgbBuffer;
+    //unsigned char *dstBuf;
+
+    JpegHelper jpegHelper;
+    int result = jpegHelper.write_jpeg_file(location,srcbuf,quality,height,width);
+
+    env->ReleaseByteArrayElements(byte, rgbBuffer, 0);
+    return result;
 
 }

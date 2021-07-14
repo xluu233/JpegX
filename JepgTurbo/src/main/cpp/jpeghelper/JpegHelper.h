@@ -29,16 +29,28 @@ class JpegHelper {
 
     public:
 
-    int read_jpeg_file(const char *jpeg_file, unsigned char **rgb_buffer, int *size, int *width,int *height);
+    /**
+     * TODO 读取Jpeg文件信息
+     * @param filePath 文件路径
+     * @param rgb_buffer 输出buffer指针
+     * @param size
+     * @param width
+     * @param height
+     * @return
+     */
+    int read_jpeg_file(const char *filePath, JSAMPLE **rgb_buffer, int *size, int *width, int *height);
+//    int read_jpeg_file(const char *file);
+//    int read_jpeg_file(const char *file, unsigned char* &src_buffer, int &num);
 
-    //将buffer保存为jpeg
-    int write_jpeg_file (unsigned char* image_buffer, int quality,int image_height, int image_width);
 
-    //输入bitmap ,输出jpeg
-    int GenerateBitmap2Jpeg(BYTE *data, int w, int h, int quality,const char* outfilename);
+    /*buffer保存为jpeg*/
+    int write_jpeg_file (const char *filePath, JSAMPLE *image_buffer, int quality, int height, int width);
 
-    //输入bitmap,输出buffer
-    int GenerateBitmap2Buffer(BYTE *data, int w, int h, int quality, const char *outfilename);
+    /*bitmap保存为jpeg*/
+    int GenerateBitmap2Jpeg(BYTE *data, int w, int h, int quality, const char *outfilename);
+
+    /*bitmap生成buffer*/
+    int GenerateBitmap2Buffer(BYTE *data, int w, int h, int quality, JSAMPLE **rgb_buffer);
 
 
 };

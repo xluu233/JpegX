@@ -8,6 +8,7 @@ import android.media.ExifInterface
 import android.net.Uri
 import android.provider.MediaStore
 import java.io.*
+import java.nio.ByteBuffer
 
 
 /**
@@ -62,8 +63,8 @@ object BitmapUtil {
         try {
             val exif = ExifInterface(path)
             val orientation = exif.getAttributeInt(
-                ExifInterface.TAG_ORIENTATION,
-                ExifInterface.ORIENTATION_NORMAL
+                    ExifInterface.TAG_ORIENTATION,
+                    ExifInterface.ORIENTATION_NORMAL
             )
             when (orientation) {
                 ExifInterface.ORIENTATION_ROTATE_90 -> result = 90f
@@ -107,6 +108,26 @@ object BitmapUtil {
         this.compress(Bitmap.CompressFormat.JPEG, quality, bos)
         val bytes = bos.toByteArray()
         BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    }
+
+
+    fun convertToByteArray(bitmap: Bitmap?):ByteArray? {
+        if (bitmap==null) return null
+
+        val bytes: Int = bitmap.byteCount
+        val buf: ByteBuffer = ByteBuffer.allocate(bytes)
+        bitmap.copyPixelsToBuffer(buf)
+
+        return buf.array()
+    }
+
+    fun convertToByteBuffer(bitmap: Bitmap?):ByteBuffer? {
+        if (bitmap==null) return null
+
+        val bytes: Int = bitmap.byteCount
+        val buf: ByteBuffer = ByteBuffer.allocate(bytes)
+        bitmap.copyPixelsToBuffer(buf)
+        return buf
     }
 
 
