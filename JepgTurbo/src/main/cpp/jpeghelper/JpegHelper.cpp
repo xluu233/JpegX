@@ -86,6 +86,67 @@ int JpegHelper::read_jpeg_file(const char *filePath, JSAMPLE **rgb_buffer, int *
     return 1;
 }
 
+int JpegHelper::read_jpeg_file(const char *file, unsigned char *&src_point) {
+
+    FILE *fp = nullptr;
+    int row_stride;
+
+
+    fp = fopen(file, "rb");
+
+    if (fp == nullptr) {
+        LOGD("open file failed");
+        return 0;
+    }
+
+    JSAMPARRAY buffer;
+
+    struct jpeg_decompress_struct cinfo;
+
+    struct jpeg_error_mgr jerr;
+
+    cinfo.err = jpeg_std_error(&jerr);
+
+
+    jpeg_create_decompress(&cinfo);
+
+    jpeg_stdio_src(&cinfo, fp);
+
+    jpeg_read_header(&cinfo, TRUE);
+
+    LOGD("width is %d height is %d", cinfo.image_width, cinfo.image_height);
+
+    jpeg_start_decompress(&cinfo);
+
+    unsigned long width = cinfo.output_width;
+    unsigned long height = cinfo.output_height;
+    unsigned short depth = cinfo.output_components;
+    row_stride = cinfo.output_width * cinfo.output_components;
+
+    buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo, JPOOL_IMAGE, row_stride, 1);
+
+    unsigned char *src_buff;
+    src_buff = static_cast<unsigned char *>(malloc(width * height * depth));
+    memset(src_buff, 0, sizeof(unsigned char) * width * height * depth);
+
+    unsigned char *point = src_buff;
+
+    while (cinfo.output_scanline < height) {
+        jpeg_read_scanlines(&cinfo, buffer, 1);
+        memcpy(point, *buffer, width * depth);
+        point += width * depth;
+    }
+
+    jpeg_finish_decompress(&cinfo);
+    jpeg_destroy_decompress(&cinfo);
+
+    free(src_buff);
+
+    fclose(fp);
+
+    return 0;
+}
+
 int JpegHelper::GenerateBitmap2Jpeg(BYTE *data, int w, int h, int quality, const char *outfilename) {
 
     struct jpeg_compress_struct jcs;

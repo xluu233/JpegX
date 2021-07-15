@@ -18,6 +18,7 @@ import com.xlu.compress.databinding.ActivityMainBinding
 import com.xlu.compress.utils.FileSizeUtil
 import com.xlu.compress.utils.FileUtil
 import com.xlu.jepgturbo.CompressListener
+import com.xlu.jepgturbo.Formats
 import com.xlu.jepgturbo.JpegTurbo
 import com.xlu.jepgturbo.utils.BitmapUtil
 import kotlinx.coroutines.*
@@ -157,7 +158,7 @@ class MainActivity : AppCompatActivity() {
         )*/
 
 
-        JpegTurbo.setParams(
+/*        JpegTurbo.setParams(
             input = bitmap,
             output = outputFile.absolutePath
         ).compress(object :CompressListener<String>{
@@ -168,7 +169,31 @@ class MainActivity : AppCompatActivity() {
             override fun onCompleted(success: Boolean, result: String?) {
                 Log.d(TAG,"onCompleted,success:$success, result:${result}")
             }
+        })*/
+
+        JpegTurbo.setParams(
+            input = bitmap!!,
+            outputType = Formats.Byte
+        ).compress(object :CompressListener<ByteArray>{
+            override fun onStart() {
+                Log.d(TAG,"onStart")
+            }
+
+            override fun onCompleted(success: Boolean, result: ByteArray?) {
+                Log.d(TAG,"onCompleted,success:$success, result:${result}")
+/*                bitmap = BitmapUtil.deconvertByte(result)
+                binding.imageViewAfter.setImageBitmap(bitmap)*/
+            }
         })
+
+
+/*        val outputByte :ByteArray ?= JpegTurbo.compressByteArray(
+            byte = byte!!,
+            height = height,
+            width = width
+        )
+
+        val bitmap = BitmapUtil.deconvertByte(outputByte)*/
 
         //压缩后的文件大小
         val outFileSize = FileSizeUtil.getFolderOrFileSize(
@@ -176,10 +201,8 @@ class MainActivity : AppCompatActivity() {
                 FileSizeUtil.SIZETYPE_KB
         )
 
-
-
         withContext(Dispatchers.Main){
-            binding.imageViewAfter.setImageURI(Uri.parse(outputFile.absolutePath))
+            //binding.imageViewAfter.setImageURI(Uri.parse(outputFile.absolutePath))
             binding.imageInfoAfter.text = "JpegTurbo bitmap压缩\n文件大小：$outFileSize KB\n压缩耗时:${System.currentTimeMillis()-time}ms"
         }
     }
@@ -218,7 +241,6 @@ class MainActivity : AppCompatActivity() {
         //模拟数据
         val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress3.jpg")
         var byte : ByteArray ?= null
-        //val bitmap = BitmapUtil.convertToBitmap(file)
 
         bitmap?.let {
             byte = BitmapUtil.convertToByteArray(it)
@@ -230,16 +252,28 @@ class MainActivity : AppCompatActivity() {
 
         //开始压缩
         val time = System.currentTimeMillis()
+/*
         val result: Boolean = JpegTurbo.compressByte2Jpeg(
                 byte = byte!!,
                 height = height,
                 width = width,
                 outputFilePath = outputFile.absolutePath
         )
+*/
+
+
+        val outputByte :ByteArray ?= JpegTurbo.compressByte(
+            byte = byte!!,
+            height = height,
+            width = width
+        )
+
+        val bitmap = BitmapUtil.deconvertByte(outputByte)
 
         val outFileSize = FileSizeUtil.getFolderOrFileSize(outputFile.absolutePath, FileSizeUtil.SIZETYPE_KB)
         withContext(Dispatchers.Main){
-            binding.imageViewAfter3.setImageURI(Uri.parse(outputFile.absolutePath))
+            binding.imageViewAfter3.setImageBitmap(bitmap)
+            //binding.imageViewAfter3.setImageURI(Uri.parse(outputFile.absolutePath))
             binding.imageInfoAfter3.text = "JpegTurbo byte[]压缩\n文件大小：$outFileSize KB\n耗时：${System.currentTimeMillis()-time}ms"
         }
 

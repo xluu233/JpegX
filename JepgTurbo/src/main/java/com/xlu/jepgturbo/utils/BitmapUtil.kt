@@ -130,5 +130,11 @@ object BitmapUtil {
         return buf
     }
 
+    fun deconvertByte(byteArray: ByteArray?):Bitmap?{
+        if (byteArray==null) return null
+        var bitmap : Bitmap ?= null
+        bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size);
+        return bitmap
+    }
 
 }

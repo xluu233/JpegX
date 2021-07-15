@@ -3,7 +3,7 @@ package com.xlu.jepgturbo
 import android.graphics.Bitmap
 import com.xlu.jepgturbo.utils.BitmapUtil
 import java.io.File
-import java.nio.ByteBuffer
+import kotlin.concurrent.thread
 
 /**
  * @ClassName JepgTurbo
@@ -13,6 +13,7 @@ import java.nio.ByteBuffer
  */
 object JpegTurbo {
 
+    const val TAG = "JpegTurbo"
 
     init {
         System.loadLibrary("jepg_compress")
@@ -33,33 +34,16 @@ object JpegTurbo {
         outputFilePath: String
     ):Boolean
 
-    /**
-     * TODO 输入：ByteBuffer   输出：byte[]
-     *  暂未测试
-     * @param byteBuffer
-     * @param width
-     * @param height
-     * @param quality
-     * @return
-     */
-    private external fun compressByteBuffer(
-        byteBuffer: ByteBuffer,
-        width: Int,
-        height: Int,
-        quality: Int = 60
-    ):ByteArray?
-
 
     /**
      * TODO 输入：byte[]   输出：byte[]
-     *  暂未测试
      * @param byte
      * @param width
      * @param height
      * @param quality
      * @return
      */
-    external fun compressByteArray(
+    external fun compressByte(
         byte: ByteArray,
         width: Int,
         height: Int,
@@ -83,6 +67,23 @@ object JpegTurbo {
         quality: Int = 60,
         outputFilePath: String
     ):Boolean
+
+
+    // byte[] 2 bitmap
+/*    external fun compressByte2Bitmap(
+        byte: ByteArray,
+        width: Int,
+        height: Int,
+        quality: Int = 60
+    ):Bitmap*/
+
+    external fun compressFile(
+        filePath:String,
+        outputFilePath: String,
+        width: Int,
+        height: Int,
+        quality: Int = 60,
+    )
 
     //是否设置了参数
     private var setParams:Boolean = false
@@ -114,18 +115,21 @@ object JpegTurbo {
     private var outputByte:ByteArray ?= null
 
 
+
     /**
      * TODO 设置压缩参数
-     * @param input 支持输入类型：Bitmap, ByteArray, File, File路径
-     * @param output 支持输出类型：Bitmap, ByteArray, File路径
+     *
+     * @param input 支持输入类型：Bitmap, ByteArray, File, File路径(String)
+     * @param output 支持输出类型：Bitmap, ByteArray, File路径(String)
+     * @param outputType 输入、输出类型会根据输入、输出文件自动判断，但是如果没有设置输出，必须手动设置输出类型
      * @param width
      * @param height
      * @param quality 压缩质量：0-100
      * @return
      */
     fun setParams(
-        input: Any? = null,
-        output: Any? = null,
+        input: Any,
+        outputType: Formats,
         width: Int = 0,
         height: Int = 0,
         quality: Int = 60
@@ -134,23 +138,20 @@ object JpegTurbo {
         //设置输入类型
         when(input){
             is String -> {
-                inputType = Formats.File
+                this.inputType = Formats.File
                 inputFilePath = input
             }
             is File -> {
-                inputType = Formats.File
+                this.inputType = Formats.File
                 inputFilePath = input.absolutePath
             }
             is Bitmap -> {
-                inputType = Formats.Bitmap
+                this.inputType = Formats.Bitmap
                 inputBitmap = input
             }
             is ByteArray -> {
-                inputType = Formats.Byte
+                this.inputType = Formats.Byte
                 inputByte = input
-                if (width == 0 || height == 0) {
-                    throw Exception("when input is byte[], width and height can't be null")
-                }
             }
             else -> {
                 throw Exception("input is null, or an unsupported type")
@@ -158,40 +159,50 @@ object JpegTurbo {
         }
 
         //设置输出类型
-        when(output){
+/*        when(output){
             is String -> {
-                outputType = Formats.File
+                this.outputType = Formats.File
                 outputFilePath = output
             }
             is File -> {
-                inputType = Formats.File
+                this.outputType = Formats.File
                 outputFilePath = output.absolutePath
             }
             is Bitmap -> {
-                outputType = Formats.Bitmap
+                this.outputType = Formats.Bitmap
                 outputBitmap = output
             }
             is ByteArray -> {
-                outputType = Formats.Byte
+                this.outputType = Formats.Byte
                 outputByte = output
             }
             else -> {
                 throw Exception("output is null, or an unsupported type")
             }
-        }
+        }*/
 
         this.width = width
         this.height = height
         this.quality = quality
-
+        this.outputType = outputType
     }
 
     @JvmName("compress1")
-    fun compress(listener: CompressListener<Any> ?= null) : Any?{
-        return this.compress<Any>(listener)
+    fun compress(listener: CompressListener<Any> ?= null){
+        this.compress<Any>(listener)
     }
 
-    fun <T> compress(listener: CompressListener<T> ?= null) : Any?{
+    inline fun <reified T> getType(value: T) : Any{
+        println("$value 的类型是 ${T::class.java}")
+        return T::class.java
+    }
+
+    @Synchronized
+    fun <T> compress(listener: CompressListener<T> ?= null) = thread{
+        if (!setParams) throw Exception("you haven't set the parameters")
+        if (inputType == null) throw Exception("intput type is null, or an unsupported type")
+        if (outputType == null) throw Exception("output type is null, or an unsupported type")
+
         when(inputType){
             Formats.File -> {
                 when (outputType) {
@@ -207,15 +218,34 @@ object JpegTurbo {
                 }
             }
             Formats.Byte -> {
+                if (width == 0 || height == 0) throw Exception("when input is byte[], width and height can't be null")
                 when (outputType) {
                     Formats.File -> {
-
+                        if (outputFilePath.isNullOrEmpty()) throw Exception("output file path is null")
+                        listener?.onStart()
+                        val result = compressByte2Jpeg(
+                            inputByte!!,
+                            width,
+                            height,
+                            quality,
+                            outputFilePath!!
+                        )
+                        listener?.onCompleted(result, outputFilePath as T)
                     }
                     Formats.Bitmap -> {
-
+                        inputByte?.let {
+                            listener?.onStart()
+                            val outputByte = compressByte(it, width, height, quality)
+                            outputBitmap = BitmapUtil.deconvertByte(outputByte)
+                        }
+                        listener?.onCompleted(outputBitmap != null, outputBitmap as T)
                     }
                     Formats.Byte -> {
-
+                        inputByte?.let {
+                            listener?.onStart()
+                            outputByte = compressByte(it, width, height, quality)
+                        }
+                        listener?.onCompleted(outputByte != null, outputByte as T)
                     }
                 }
             }
@@ -224,6 +254,7 @@ object JpegTurbo {
                 when (outputType) {
                     Formats.File -> {
                         if (outputFilePath.isNullOrEmpty()) throw Exception("output file path is null")
+                        listener?.onStart()
                         val result = compressBitmap(
                             inputBitmap!!,
                             width,
@@ -234,23 +265,32 @@ object JpegTurbo {
                         listener?.onCompleted(result, outputFilePath as T)
                     }
                     Formats.Bitmap -> {
-
-                    }
-                    Formats.Byte -> {
-                        if (width == 0 || height == 0) throw Exception("when input is byte[], width and height can't be null")
+                        //TODO 待完善
                         val byte: ByteArray? = BitmapUtil.convertToByteArray(inputBitmap)
                         byte?.let {
-                            compressByteArray(byte, width, height, quality)
+                            listener?.onStart()
+                            if (width==0) width = inputBitmap!!.width
+                            if (height==0) height = inputBitmap!!.height
+                            val outputByte = compressByte(it, width, height, quality)
+                            outputBitmap = BitmapUtil.deconvertByte(outputByte)
                         }
-
-
+                        listener?.onCompleted(outputBitmap != null, outputBitmap as T)
+                    }
+                    Formats.Byte -> {
+                        val byte: ByteArray? = BitmapUtil.convertToByteArray(inputBitmap)
+                        byte?.let {
+                            listener?.onStart()
+                            if (width==0) width = inputBitmap!!.width
+                            if (height==0) height = inputBitmap!!.height
+                            outputByte = compressByte(it, width, height, quality)
+                        }
+                        listener?.onCompleted(outputByte != null, outputByte as T)
                     }
                 }
             }
         }
 
         clear()
-        return null
     }
 
 

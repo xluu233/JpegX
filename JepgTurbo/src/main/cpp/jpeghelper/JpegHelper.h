@@ -39,8 +39,8 @@ class JpegHelper {
      * @return
      */
     int read_jpeg_file(const char *filePath, JSAMPLE **rgb_buffer, int *size, int *width, int *height);
-//    int read_jpeg_file(const char *file);
-//    int read_jpeg_file(const char *file, unsigned char* &src_buffer, int &num);
+
+    int read_jpeg_file(const char *file, unsigned char *&src_point);
 
     /*buffer保存为jpeg*/
     int write_jpeg_file(const char *filename, int image_height, int image_width, int quality, JSAMPLE *image_buffer);
@@ -50,6 +50,7 @@ class JpegHelper {
 
     /*bitmap生成buffer*/
     int GenerateBitmap2Buffer(BYTE *data, int w, int h, int quality, JSAMPLE **rgb_buffer);
+
 
 
 };

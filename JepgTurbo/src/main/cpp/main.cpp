@@ -128,6 +128,7 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobje
     //setup2 : 开始压缩
     JpegHelper jpegHelper;
     int resultCode = jpegHelper.GenerateBitmap2Jpeg(tmpData, width, height,quality,location);
+
     if(resultCode==0){
         LOGD("Generate error");
     } else{
@@ -145,52 +146,14 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobje
 
 extern "C"
 JNIEXPORT jbyteArray JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_compressByteBuffer(JNIEnv *env, jobject thiz, jobject byte_buffer,
-        jint width, jint height, jint quality) {
+Java_com_xlu_jepgturbo_JpegTurbo_compressByte(JNIEnv *env, jobject thiz, jbyteArray byte,
+                                              jint width, jint height, jint quality) {
 
-
-    uint8_t * rgbBuffer = ( uint8_t *) env->GetDirectBufferAddress(byte_buffer);
-
-    tjhandle handle = NULL;
-    int flags = 0;
-    int pad = 4; //字节对齐
-    int subsamp = TJSAMP_420;
-    int pixelfmt = TJPF_RGBA;//TJPF_RGBA;//TJPF_ARGB;
-
-    handle=tjInitCompress();
-    if (NULL == handle){
-        return NULL;
-    }
-
-    unsigned char* srcbuf = rgbBuffer;
-    unsigned char* dstbuf = NULL;
-    unsigned long outjpg_size = 0;
-
-
-    int ret = tjCompress2(handle, srcbuf, width,0, height, pixelfmt, &dstbuf, &outjpg_size, subsamp, quality, flags);
-    tjDestroy(handle);
-
-    if (0 != ret) {
-        return NULL;
-    }
-
-    jbyteArray data = env->NewByteArray(outjpg_size);
-    env->SetByteArrayRegion(data, 0, outjpg_size, (jbyte *)dstbuf);
-
-    tjFree(dstbuf);
-    return data;
-}
-
-extern "C"
-JNIEXPORT jbyteArray JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_compressByteArray(JNIEnv *env, jobject thiz, jbyteArray byte,
-                                                   jint width, jint height, jint quality) {
-
-    jbyte * rgbBuffer = env->GetByteArrayElements(byte, 0);
+    LOGD("compressByteArray");
+    jbyte *rgbBuffer = env->GetByteArrayElements(byte, 0);
 
     tjhandle handle = NULL;
     int flags = 0;
-    int pad = 4; //字节对齐
     int subsamp = TJSAMP_420;
     int pixelfmt = TJPF_RGBA;
 
@@ -199,16 +162,15 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressByteArray(JNIEnv *env, jobject thiz, jb
         return NULL;
     }
 
-    unsigned char* srcbuf = (unsigned char*)rgbBuffer;
+    unsigned char *srcbuf = (unsigned char*)rgbBuffer;
     unsigned char *dstBuf = NULL;
     unsigned long outjpg_size;
 
-
     int ret = tjCompress2(handle, srcbuf, width, 0, height, pixelfmt, &dstBuf, &outjpg_size, subsamp, quality, flags);
-
 
     tjDestroy(handle);
     if (0 != ret) {
+        LOGD("compress error");
         return NULL;
     }
 
@@ -240,4 +202,13 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressByte2Jpeg(JNIEnv *env, jobject thiz, jb
 
     env->ReleaseByteArrayElements(byte, rgbBuffer, 0);
     return result;
+}
+
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_xlu_jepgturbo_JpegTurbo_compressFile(JNIEnv *env, jobject thiz, jstring file_path,
+                                              jstring output_file_path, jint width, jint height,
+                                              jint quality) {
+    // TODO: implement compressFile()
 }
