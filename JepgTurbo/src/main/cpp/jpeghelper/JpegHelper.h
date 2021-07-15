@@ -42,9 +42,8 @@ class JpegHelper {
 //    int read_jpeg_file(const char *file);
 //    int read_jpeg_file(const char *file, unsigned char* &src_buffer, int &num);
 
-
     /*buffer保存为jpeg*/
-    int write_jpeg_file (const char *filePath, JSAMPLE *image_buffer, int quality, int height, int width);
+    int write_jpeg_file(const char *filename, int image_height, int image_width, int quality, JSAMPLE *image_buffer);
 
     /*bitmap保存为jpeg*/
     int GenerateBitmap2Jpeg(BYTE *data, int w, int h, int quality, const char *outfilename);

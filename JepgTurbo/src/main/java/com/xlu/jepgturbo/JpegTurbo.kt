@@ -58,7 +58,7 @@ object JpegTurbo {
      * @param quality
      * @return
      */
-    private external fun compressByteArray(
+    external fun compressByteArray(
         byte: ByteArray,
         width: Int,
         height: Int,
@@ -66,7 +66,15 @@ object JpegTurbo {
     ):ByteArray?
 
 
-
+    /**
+     * TODO 输入：byte[]   输出：File
+     * @param byte
+     * @param width
+     * @param height
+     * @param quality
+     * @param outputFilePath
+     * @return
+     */
     external fun compressByte2Jpeg(
             byte: ByteArray,
             width: Int,
@@ -74,6 +82,8 @@ object JpegTurbo {
             quality: Int = 60,
             outputFilePath: String
     ):Boolean
+
+
 
     //压缩文件
     private var file: File ?= null

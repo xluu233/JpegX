@@ -229,16 +229,15 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressByte2Jpeg(JNIEnv *env, jobject thiz, jb
 
     LOGD("compressByte2Jpeg");
     const char *location = env->GetStringUTFChars(output_file_path,NULL);
-    jbyte * rgbBuffer = env->GetByteArrayElements(byte, 0);
-    //jbyte *bytebuffer = env->GetByteArrayElements(byte, 0);
 
-    unsigned char *srcbuf = (unsigned char*)rgbBuffer;
-    //unsigned char *dstBuf;
+    jbyte *rgbBuffer = env->GetByteArrayElements(byte, 0);
+    unsigned char *dstbuff = (unsigned char*)rgbBuffer;
+
+    //unsigned char *dstbuff =  as_unsigned_char_array(env,byte);
 
     JpegHelper jpegHelper;
-    int result = jpegHelper.write_jpeg_file(location,srcbuf,quality,height,width);
+    int result = jpegHelper.write_jpeg_file(location, height, width, quality, dstbuff);
 
     env->ReleaseByteArrayElements(byte, rgbBuffer, 0);
     return result;
-
 }

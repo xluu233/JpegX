@@ -6,7 +6,6 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
@@ -22,7 +21,6 @@ import com.xlu.compress.utils.FileUtil
 import com.xlu.jepgturbo.JpegTurbo
 import kotlinx.coroutines.*
 import java.io.*
-import java.nio.ByteBuffer
 
 
 const val PERMISSION_CAMERA_REQUEST_CODE:Int = 1001
@@ -129,19 +127,29 @@ class MainActivity : AppCompatActivity() {
         bitmap = BitmapUtil.convertToBitmap(file)
         if (bitmap == null) return
 
-        compressFile()
+        CoroutineScope(Dispatchers.IO).launch {
+
+            compressFile()
+            compressFileAndroid()
+            compressByte2Jpeg()
+
+        }
+
+
+
+
     }
 
     /**
-     * TODO LibJpegTurbo压缩Bitmap
+     * TODO LibJpegTurbo压缩
+     * 输入Bitmap，输出File
      */
     @SuppressLint("SetTextI18n")
-    private fun compressFile() = CoroutineScope(Dispatchers.IO).launch{
+    private suspend fun compressFile() = withContext(Dispatchers.IO){
         //创建输出文件
         val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress.jpg")
 
         val time = System.currentTimeMillis()
-
         JpegTurbo.compressBitmap(
                 bitmap = bitmap!!,
                 outputFilePath = outputFile.absolutePath
@@ -155,22 +163,19 @@ class MainActivity : AppCompatActivity() {
 
         withContext(Dispatchers.Main){
             binding.imageViewAfter.setImageURI(Uri.parse(outputFile.absolutePath))
-            binding.imageInfoAfter.text = "JpegTurbo压缩\n文件大小：$outFileSize KB\n压缩耗时:${System.currentTimeMillis()-time}ms"
-
-            compressFileAndroid()
+            binding.imageInfoAfter.text = "JpegTurbo bitmap压缩\n文件大小：$outFileSize KB\n压缩耗时:${System.currentTimeMillis()-time}ms"
         }
     }
 
 
     /**
-     * TODO Android原生压缩 File
-     * @param file
+     * TODO Android原生压缩
      */
-    private fun compressFileAndroid() = CoroutineScope(Dispatchers.IO).launch{
+    private suspend fun compressFileAndroid() = withContext(Dispatchers.IO){
         //创建输出文件
         val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress2.jpg")
         val bitmap = BitmapUtil.convertToBitmap(file)
-        if (bitmap == null) this.cancel()
+        if (bitmap == null) return@withContext
 
         //Android原生压缩设置 quality<90 之后会有明显的质量下降
         try {
@@ -186,36 +191,40 @@ class MainActivity : AppCompatActivity() {
         withContext(Dispatchers.Main){
             binding.imageViewAfter2.setImageBitmap(bitmap)
             binding.imageInfoAfter2.text = "Android原生压缩\n文件大小：$outFileSize KB\n"
-
-            compressByteBuffer2Jpeg()
         }
     }
 
-
-    private fun compressByteBuffer2Jpeg() = CoroutineScope(Dispatchers.IO).launch{
-        //模拟生成ByteBuffer
+    /**
+     * TODO LibJpegTurbo压缩
+     * 输入byte[]，输出File
+     */
+    private suspend fun compressByte2Jpeg() = withContext(Dispatchers.IO){
+        //模拟数据
         val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress3.jpg")
         var byte : ByteArray ?= null
-        val bitmap = BitmapUtil.convertToBitmap(file)
+        //val bitmap = BitmapUtil.convertToBitmap(file)
 
         bitmap?.let {
             byte = BitmapUtil.convertToByteArray(it)
         }
-        if (byte== null || bitmap==null) this.cancel()
+        if (byte== null || bitmap==null) return@withContext
 
+        val width = bitmap!!.width
+        val height = bitmap!!.height
 
-        val resultCode = JpegTurbo.compressByte2Jpeg(
+        //开始压缩
+        val time = System.currentTimeMillis()
+        val result: Boolean = JpegTurbo.compressByte2Jpeg(
                 byte = byte!!,
-                height = bitmap!!.height,
-                width = bitmap.width,
+                height = height,
+                width = width,
                 outputFilePath = outputFile.absolutePath
         )
 
-
         val outFileSize = FileSizeUtil.getFolderOrFileSize(outputFile.absolutePath, FileSizeUtil.SIZETYPE_KB)
         withContext(Dispatchers.Main){
-            binding.imageViewAfter2.setImageURI(Uri.parse(outputFile.absolutePath))
-            binding.imageInfoAfter2.text = "Android原asdasdas生压缩\n文件大小：$outFileSize KB\n"
+            binding.imageViewAfter3.setImageURI(Uri.parse(outputFile.absolutePath))
+            binding.imageInfoAfter3.text = "JpegTurbo byte[]压缩\n文件大小：$outFileSize KB\n耗时：${System.currentTimeMillis()-time}ms"
         }
 
     }

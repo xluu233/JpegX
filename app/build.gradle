@@ -52,6 +52,8 @@ dependencies {
     implementation project(path: ':JepgTurbo')
 
 
+    debugImplementation 'com.squareup.leakcanary:leakcanary-android:2.7'
+
     //Rxpermissions  https://github.com/tbruyelle/RxPermissions
     implementation 'com.github.tbruyelle:rxpermissions:0.12'
 

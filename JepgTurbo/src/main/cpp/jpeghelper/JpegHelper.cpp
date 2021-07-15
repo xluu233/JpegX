@@ -86,51 +86,6 @@ int JpegHelper::read_jpeg_file(const char *filePath, JSAMPLE **rgb_buffer, int *
     return 1;
 }
 
-int JpegHelper::write_jpeg_file(const char *filePath, JSAMPLE *image_buffer, int quality, int height, int width) {
-
-    struct jpeg_compress_struct cinfo;
-    struct jpeg_error_mgr jerr;
-
-    JSAMPROW row_pointer[1];
-
-    cinfo.err = jpeg_std_error(&jerr);
-    /*压缩初始化*/
-    jpeg_create_compress(&cinfo);
-
-    FILE* f = fopen(filePath, "wb");
-    if (f == nullptr) {
-        LOGD("open file failed");
-        return 0;
-    }
-
-    jpeg_stdio_dest(&cinfo, f);
-
-    /*设置压缩各项图片参数*/
-    cinfo.image_width = width;
-    cinfo.image_height = height;
-    cinfo.input_components = 3;
-    cinfo.in_color_space = JCS_RGB;
-
-    jpeg_set_defaults(&cinfo);
-    /*设置压缩质量*/
-    jpeg_set_quality(&cinfo, quality, TRUE );
-    /*开始压缩*/
-    jpeg_start_compress(&cinfo, TRUE);
-    /*逐行扫描压缩写入文件*/
-    int row_stride = width * 3;
-    while (cinfo.next_scanline < cinfo.image_height) {
-        row_pointer[0] = & image_buffer[(cinfo.image_height-cinfo.next_scanline) * row_stride];
-        jpeg_write_scanlines(&cinfo, row_pointer, 1);
-    }
-    /*完成压缩*/
-    jpeg_finish_compress(&cinfo);
-    jpeg_destroy_compress(&cinfo);
-    fclose(f);
-    /*释放存储的解压图像内容*/
-    free(image_buffer);
-    return 1;
-}
-
 int JpegHelper::GenerateBitmap2Jpeg(BYTE *data, int w, int h, int quality, const char *outfilename) {
 
     struct jpeg_compress_struct jcs;
@@ -225,6 +180,50 @@ int JpegHelper::GenerateBitmap2Buffer(BYTE *data, int w, int h, int quality, JSA
     jpeg_finish_compress(&jcs);
     jpeg_destroy_compress(&jcs);
 
+    return 1;
+}
+
+int JpegHelper::write_jpeg_file(const char *filename, int image_height, int image_width, int quality, JSAMPLE *image_buffer) {
+
+    struct jpeg_compress_struct cinfo;
+    struct jpeg_error_mgr jerr;
+
+    FILE *outfile;
+    int nComponent = 4;
+    int row_stride;
+    JSAMPROW row_pointer[1];
+
+    cinfo.err = jpeg_std_error(&jerr);
+    /*压缩初始化*/
+    jpeg_create_compress(&cinfo);
+
+    if ((outfile = fopen(filename, "wb")) == nullptr) {
+        LOGD("open file failed");
+        return 0;
+    }
+
+    jpeg_stdio_dest(&cinfo, outfile);
+    /*设置压缩各项图片参数*/
+    cinfo.image_width = image_width;
+    cinfo.image_height = image_height;
+    cinfo.input_components = nComponent;
+    cinfo.in_color_space = JCS_EXT_RGBA;
+
+    jpeg_set_defaults(&cinfo);
+    jpeg_set_quality(&cinfo, quality, TRUE);
+    /*开始压缩*/
+    jpeg_start_compress(&cinfo, TRUE);
+    /*逐行扫描压缩写入文件*/
+    row_stride = image_width * nComponent;
+    while (cinfo.next_scanline < cinfo.image_height) {
+        row_pointer[0] = &image_buffer[cinfo.next_scanline * row_stride];
+        jpeg_write_scanlines(&cinfo, row_pointer, 1);
+    }
+    /*完成压缩*/
+    jpeg_finish_compress(&cinfo);
+    jpeg_destroy_compress(&cinfo);
+
+    fclose(outfile);
     return 1;
 }
 
