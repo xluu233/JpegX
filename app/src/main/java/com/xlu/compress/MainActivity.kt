@@ -15,10 +15,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.xlu.compress.databinding.ActivityMainBinding
-import com.xlu.compress.utils.BitmapUtil
 import com.xlu.compress.utils.FileSizeUtil
 import com.xlu.compress.utils.FileUtil
+import com.xlu.jepgturbo.CompressListener
 import com.xlu.jepgturbo.JpegTurbo
+import com.xlu.jepgturbo.utils.BitmapUtil
 import kotlinx.coroutines.*
 import java.io.*
 
@@ -130,8 +131,8 @@ class MainActivity : AppCompatActivity() {
         CoroutineScope(Dispatchers.IO).launch {
 
             compressFile()
-            compressFileAndroid()
-            compressByte2Jpeg()
+            //compressFileAndroid()
+            //compressByte2Jpeg()
 
         }
 
@@ -150,16 +151,32 @@ class MainActivity : AppCompatActivity() {
         val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress.jpg")
 
         val time = System.currentTimeMillis()
-        JpegTurbo.compressBitmap(
+/*        JpegTurbo.compressBitmap(
                 bitmap = bitmap!!,
                 outputFilePath = outputFile.absolutePath
-        )
+        )*/
+
+
+        JpegTurbo.setParams(
+            input = bitmap,
+            output = outputFile.absolutePath
+        ).compress(object :CompressListener<String>{
+            override fun onStart() {
+                Log.d(TAG,"onStart")
+            }
+
+            override fun onCompleted(success: Boolean, result: String?) {
+                Log.d(TAG,"onCompleted,success:$success, result:${result}")
+            }
+        })
 
         //压缩后的文件大小
         val outFileSize = FileSizeUtil.getFolderOrFileSize(
                 outputFile.absolutePath,
                 FileSizeUtil.SIZETYPE_KB
         )
+
+
 
         withContext(Dispatchers.Main){
             binding.imageViewAfter.setImageURI(Uri.parse(outputFile.absolutePath))
@@ -174,8 +191,7 @@ class MainActivity : AppCompatActivity() {
     private suspend fun compressFileAndroid() = withContext(Dispatchers.IO){
         //创建输出文件
         val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress2.jpg")
-        val bitmap = BitmapUtil.convertToBitmap(file)
-        if (bitmap == null) return@withContext
+        val bitmap = BitmapUtil.convertToBitmap(file) ?: return@withContext
 
         //Android原生压缩设置 quality<90 之后会有明显的质量下降
         try {
