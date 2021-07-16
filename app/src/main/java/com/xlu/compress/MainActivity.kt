@@ -171,7 +171,22 @@ class MainActivity : AppCompatActivity() {
             }
         })*/
 
-        JpegTurbo.setParams(
+/*
+        JpegTurbo.compressFile(
+            filePath = file!!.absolutePath
+        )
+*/
+
+        val byteArray = JpegTurbo.readFile2Byte(
+            filePath = file!!.absolutePath
+        )
+
+        Log.d(TAG,"byteArray:${byteArray.size}")
+
+        val bitmap_ = BitmapUtil.deconvertByte(byteArray)
+        binding.imageViewAfter.setImageBitmap(bitmap_)
+
+/*        JpegTurbo.setParams(
             input = bitmap!!,
             outputType = Formats.Byte
         ).compress(object :CompressListener<ByteArray>{
@@ -181,10 +196,8 @@ class MainActivity : AppCompatActivity() {
 
             override fun onCompleted(success: Boolean, result: ByteArray?) {
                 Log.d(TAG,"onCompleted,success:$success, result:${result}")
-/*                bitmap = BitmapUtil.deconvertByte(result)
-                binding.imageViewAfter.setImageBitmap(bitmap)*/
             }
-        })
+        })*/
 
 
 /*        val outputByte :ByteArray ?= JpegTurbo.compressByteArray(

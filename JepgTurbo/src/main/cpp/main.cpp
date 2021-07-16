@@ -11,7 +11,6 @@
 #include <sys/time.h>
 #include <vector>
 
-
 #include "jpeghelper/JpegHelper.h"
 
 //
@@ -20,13 +19,6 @@
 
 typedef uint8_t BYTE;
 typedef struct my_error_mgr *my_error_ptr;
-
-
-static double now_ms(void) {
-    struct timespec res;
-    clock_gettime(CLOCK_REALTIME, &res);
-    return 1000.0 * res.tv_sec + (double) res.tv_nsec / 1e6;
-}
 
 //get system time
 long getCurrentTime()
@@ -53,12 +45,17 @@ char* ConvertJByteaArrayToChars(JNIEnv *env, jbyteArray bytearray)
     return chars;
 }
 
-//jbyteArray to unsigned char
-unsigned char* as_unsigned_char_array(JNIEnv *env, jbyteArray array) {
+unsigned char* byteArray_to_unchar(JNIEnv *env, jbyteArray array) {
     int len = env->GetArrayLength (array);
     unsigned char* buf = new unsigned char[len];
     env->GetByteArrayRegion (array, 0, len, reinterpret_cast<jbyte*>(buf));
     return buf;
+}
+
+jbyteArray unchar_to_byteArray(JNIEnv *env, unsigned char *buf, int len) {
+    jbyteArray array = env->NewByteArray(len);
+    env->SetByteArrayRegion(array, 0, len, reinterpret_cast<jbyte *>(buf));
+    return array;
 }
 
 
@@ -185,20 +182,22 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressByte(JNIEnv *env, jobject thiz, jbyteAr
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_compressByte2Jpeg(JNIEnv *env, jobject thiz, jbyteArray byte,
-                                                   jint width, jint height, jint quality,
-                                                   jstring output_file_path) {
+Java_com_xlu_jepgturbo_JpegTurbo_compressByte2Jpeg(JNIEnv *env, jobject thiz, jbyteArray byte,jint width, jint height, jint quality,jstring output_file_path) {
 
     LOGD("compressByte2Jpeg");
     const char *location = env->GetStringUTFChars(output_file_path,NULL);
 
     jbyte *rgbBuffer = env->GetByteArrayElements(byte, 0);
-    unsigned char *dstbuff = (unsigned char*)rgbBuffer;
-
-    //unsigned char *dstbuff =  as_unsigned_char_array(env,byte);
+    JSAMPLE *dstbuff = (unsigned char*)rgbBuffer;
 
     JpegHelper jpegHelper;
     int result = jpegHelper.write_jpeg_file(location, height, width, quality, dstbuff);
+
+    if(result==0){
+        LOGD("write file error");
+    } else{
+        LOGD("write file success");
+    }
 
     env->ReleaseByteArrayElements(byte, rgbBuffer, 0);
     return result;
@@ -206,9 +205,80 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressByte2Jpeg(JNIEnv *env, jobject thiz, jb
 
 
 extern "C"
-JNIEXPORT void JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_compressFile(JNIEnv *env, jobject thiz, jstring file_path,
-                                              jstring output_file_path, jint width, jint height,
-                                              jint quality) {
-    // TODO: implement compressFile()
+JNIEXPORT jboolean JNICALL
+Java_com_xlu_jepgturbo_JpegTurbo_compressFile(JNIEnv *env, jobject thiz, jstring file_path, jint width, jint height,jint quality) {
+
+    int file_width = 0;
+    int file_height = 0;
+    int file_size = 0;
+
+    unsigned char *dstBuf = NULL;
+    const char *location = env->GetStringUTFChars(file_path,NULL);
+
+    JpegHelper jpegHelper;
+    int result = jpegHelper.read_jpeg_file(location,&dstBuf, &file_size, &file_width, &file_height);
+    if(result==0){
+        LOGD("read file error");
+    } else{
+        LOGD("read file success");
+    }
+
+    int result2;
+    if (width==0 || height==0){
+        result2 = jpegHelper.write_jpeg_file(location, file_height, file_width, quality, dstBuf);
+    } else{
+        result2 = jpegHelper.write_jpeg_file(location, height, width, quality, dstBuf);
+    }
+
+    if(result2==0){
+        LOGD("write file error");
+    } else{
+        LOGD("write file success");
+    }
+
+    return result2;
+}
+
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_xlu_jepgturbo_JpegTurbo_compressFile2(JNIEnv *env, jobject thiz, jstring file_path,
+                                               jstring output_file_path, jint width, jint height,
+                                               jint quality) {
+
+    const char *location = env->GetStringUTFChars(file_path,NULL);
+    const char *location_out = env->GetStringUTFChars(output_file_path,NULL);
+
+    JpegHelper jpegHelper;
+    int result = jpegHelper.compressJpeg2Jpeg(location,location_out,quality,width,height);
+
+    if(result==0){
+        LOGD("compress jpeg file error");
+    } else{
+        LOGD("compress jpeg file success");
+    }
+    return result;
+}
+
+extern "C"
+JNIEXPORT jbyteArray JNICALL
+Java_com_xlu_jepgturbo_JpegTurbo_readFile2Byte(JNIEnv *env, jobject thiz, jstring file_path) {
+
+    int file_width = 0;
+    int file_height = 0;
+    int file_size = 0;
+
+    unsigned char *dstBuf = NULL;
+    const char *location = env->GetStringUTFChars(file_path,NULL);
+
+    JpegHelper jpegHelper;
+    int result = jpegHelper.read_jpeg_file(location,&dstBuf, &file_size, &file_width, &file_height);
+
+    if(result==0){
+        LOGD("convert error");
+    } else{
+        LOGD("convert success");
+    }
+
+    return unchar_to_byteArray(env,dstBuf,file_size);
+
 }

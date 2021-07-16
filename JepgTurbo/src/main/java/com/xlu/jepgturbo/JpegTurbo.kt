@@ -1,6 +1,8 @@
 package com.xlu.jepgturbo
 
 import android.graphics.Bitmap
+import android.media.ExifInterface
+import android.util.Log
 import com.xlu.jepgturbo.utils.BitmapUtil
 import java.io.File
 import kotlin.concurrent.thread
@@ -77,13 +79,52 @@ object JpegTurbo {
         quality: Int = 60
     ):Bitmap*/
 
+    /**
+     * TODO 输入:Jpeg文件，输出：覆盖原Jpeg文件
+     * 相机照片可能会与原始角度不一致，解决方案：复制原文件的Exif信息
+     * @param filePath 文件路径
+     * @param width
+     * @param height
+     * @param quality
+     * @return
+     */
     external fun compressFile(
         filePath:String,
-        outputFilePath: String,
-        width: Int,
-        height: Int,
+        width: Int=0,
+        height: Int=0,
         quality: Int = 60,
-    )
+    ):Boolean
+
+
+    /**
+     * TODO 输入:Jpeg文件，输出：Jpeg文件
+     * 相机照片可能会与原始角度不一致，解决方案：复制原文件的Exif信息
+     * @param filePath 输入文件路径
+     * @param outputFilePath 输出文件路径
+     * @param width
+     * @param height
+     * @param quality
+     * @return
+     */
+    external fun compressFile2(
+        filePath:String,
+        outputFilePath: String,
+        width: Int=0,
+        height: Int=0,
+        quality: Int = 60,
+    ):Boolean
+
+
+    /**
+     * TODO 输入：Jpeg文件，输出：ByteArray
+     *  不涉及压缩，测试：byte 2 bitmap失败
+     * @param filePath
+     * @return
+     */
+    external fun readFile2Byte(
+        filePath:String
+    ):ByteArray
+
 
     //是否设置了参数
     private var setParams:Boolean = false
@@ -158,29 +199,6 @@ object JpegTurbo {
             }
         }
 
-        //设置输出类型
-/*        when(output){
-            is String -> {
-                this.outputType = Formats.File
-                outputFilePath = output
-            }
-            is File -> {
-                this.outputType = Formats.File
-                outputFilePath = output.absolutePath
-            }
-            is Bitmap -> {
-                this.outputType = Formats.Bitmap
-                outputBitmap = output
-            }
-            is ByteArray -> {
-                this.outputType = Formats.Byte
-                outputByte = output
-            }
-            else -> {
-                throw Exception("output is null, or an unsupported type")
-            }
-        }*/
-
         this.width = width
         this.height = height
         this.quality = quality
@@ -205,12 +223,24 @@ object JpegTurbo {
 
         when(inputType){
             Formats.File -> {
+                if (inputFilePath.isNullOrEmpty()) throw Exception("inputFilePath is null, or an unsupported type")
+                if (outputFilePath.isNullOrEmpty()){
+                    //输出路径为空，覆盖原文件
+                    Log.d(TAG,"outputFilePath is null, compression will overwrite the input file")
+                }
+                listener?.onStart()
+
                 when (outputType) {
                     Formats.File -> {
-
+                        val result = compressFile()
+                        listener?.onCompleted(result, outputFilePath as T)
                     }
                     Formats.Bitmap -> {
-
+                        val result = compressFile()
+                        val bitmap = if (result){
+                            BitmapUtil.convertToBitmap(outputFilePath)
+                        }else null
+                        listener?.onCompleted(result, bitmap as T)
                     }
                     Formats.Byte -> {
 
@@ -294,6 +324,37 @@ object JpegTurbo {
     }
 
 
+    /**
+     * TODO 文件压缩
+     * @return
+     */
+    private fun compressFile():Boolean{
+        //拷贝原文件exif信息
+        val sourceExifInterface = ExifInterface(inputFilePath!!)
+
+        val result: Boolean
+        //开始压缩File
+        if (outputFilePath.isNullOrEmpty()){
+            outputFilePath = inputFilePath
+            result = compressFile(inputFilePath!!,width, height, quality)
+        }else{
+            result = compressFile2(inputFilePath!!, outputFilePath!!,width, height, quality)
+        }
+
+        //复制原文件exif信息到输出文件
+        if (result){
+            val target = ExifInterface(outputFilePath!!)
+            sourceExifInterface.javaClass.declaredFields.forEach { member ->//获取ExifInterface类的属性并遍历
+                member.isAccessible = true
+                val tag = member.get(sourceExifInterface)//获取原图EXIF实例种的成员变量
+                if (member.name.startsWith("TAG_") && tag is String) {//判断变量是否以TAG开头，并且是String类型
+                    target.setAttribute(tag, sourceExifInterface.getAttribute(tag))//设置压缩图的EXIF信息
+                    target.saveAttributes()//保存属性更改
+                }
+            }
+        }
+        return result
+    }
     /**
      * TODO 清除参数
      */
