@@ -241,9 +241,9 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressFile(JNIEnv *env, jobject thiz, jstring
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_compressFile2(JNIEnv *env, jobject thiz, jstring file_path,
-                                               jstring output_file_path, jint width, jint height,
-                                               jint quality) {
+Java_com_xlu_jepgturbo_JpegTurbo_compressFile2File(JNIEnv *env, jobject thiz, jstring file_path,
+                                                   jstring output_file_path, jint width, jint height,
+                                                   jint quality) {
 
     const char *location = env->GetStringUTFChars(file_path,NULL);
     const char *location_out = env->GetStringUTFChars(output_file_path,NULL);

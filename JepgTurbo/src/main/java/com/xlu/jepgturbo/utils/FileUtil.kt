@@ -1,11 +1,8 @@
-package com.xlu.compress.utils
+package com.xlu.jepgturbo.utils
 
 import android.content.ContentResolver
 import android.content.Context
 import android.database.Cursor
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.hardware.camera2.CameraManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
@@ -13,9 +10,8 @@ import android.os.FileUtils
 import android.provider.MediaStore
 import android.webkit.MimeTypeMap
 import androidx.core.content.FileProvider
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.FileOutputStream
+import com.xlu.jepgturbo.getCurentTime
+import java.io.*
 import java.util.*
 
 
@@ -191,7 +187,7 @@ object FileUtil {
      * @param name
      * @return
      */
-    fun createJpegFile(context: Context, name: String = TimeUtil.getCurentTime() + ".jpg"):File{
+    fun createJpegFile(context: Context, name: String = getCurentTime() + ".jpg"):File{
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             //api >= android10 ,存储在沙盒
             return File(getTempPathEndWithSeparator(context), name)
@@ -205,5 +201,33 @@ object FileUtil {
         }
     }
 
+
+    /**
+     * 将文件转换成byte数组
+     * @param filePath
+     * @return
+     */
+    fun file2Byte(file: File?): ByteArray? {
+        if (file==null) return null
+
+        var buffer: ByteArray? = null
+        try {
+            val fis = FileInputStream(file)
+            val bos = ByteArrayOutputStream()
+            val b = ByteArray(1024)
+            var n: Int
+            while (fis.read(b).also { n = it } != -1) {
+                bos.write(b, 0, n)
+            }
+            fis.close()
+            bos.close()
+            buffer = bos.toByteArray()
+        } catch (e: FileNotFoundException) {
+            e.printStackTrace()
+        } catch (e: IOException) {
+            e.printStackTrace()
+        }
+        return buffer
+    }
 
 }

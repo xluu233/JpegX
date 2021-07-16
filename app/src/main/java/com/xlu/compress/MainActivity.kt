@@ -16,33 +16,24 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.xlu.compress.databinding.ActivityMainBinding
 import com.xlu.compress.utils.FileSizeUtil
-import com.xlu.compress.utils.FileUtil
+import com.xlu.jepgturbo.utils.FileUtil
 import com.xlu.jepgturbo.CompressListener
-import com.xlu.jepgturbo.Formats
 import com.xlu.jepgturbo.JpegTurbo
 import com.xlu.jepgturbo.utils.BitmapUtil
 import kotlinx.coroutines.*
 import java.io.*
 
 
-const val PERMISSION_CAMERA_REQUEST_CODE:Int = 1001
+const val PERMISSION_REQUEST_CODE:Int = 1001
 
 const val PHOTO_ALBUM = 1000
 const val PHOTO_CAMERA = 2000
 
-const val TAG = "JPEG"
+const val TAG = "MainActivity"
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivityMainBinding
-
-    val imageBefore by lazy {
-        binding.imageViewBefore
-    }
-    val imageAfter by lazy {
-        binding.imageViewAfter
-    }
-
 
     private var file:File ?= null
     private var uri: Uri ?= null
@@ -52,45 +43,35 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
+        //申请权限
+        ActivityCompat.requestPermissions(
+                this,
+                arrayOf(Manifest.permission.CAMERA,Manifest.permission.WRITE_EXTERNAL_STORAGE),
+                PERMISSION_REQUEST_CODE
+        )
     }
 
     /**
      * TODO 从相册选择图片
      */
-    fun ChooseImage(view: View) {
+    fun chooseImage(view: View) {
         val intentToPickPic = Intent(Intent.ACTION_PICK, null)
         intentToPickPic.setDataAndType(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, "image/*")
         startActivityForResult(intentToPickPic, PHOTO_ALBUM)
     }
 
-
     /**
      * TODO 打开相机拍照
      */
-    fun OpenCamera(view: View) {
-        val hasCameraPermission = ContextCompat.checkSelfPermission(
-                application,
-                Manifest.permission.CAMERA
-        )
-        if (hasCameraPermission == PackageManager.PERMISSION_GRANTED) {
-            //调起相机拍照。
-            file = FileUtil.createJpegFile(this)
-            uri = FileUtil.file2Uri(this, file)
+    fun openCamera(view: View) {
+        //调起相机拍照。
+        file = FileUtil.createJpegFile(this)
+        uri = FileUtil.file2Uri(this, file)
 
-            if (uri != null) {
-                val captureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
-                captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, uri)
-                //captureIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
-                startActivityForResult(captureIntent, PHOTO_CAMERA)
-            }
-        } else {
-            //申请权限
-            ActivityCompat.requestPermissions(
-                    this,
-                    arrayOf(Manifest.permission.CAMERA),
-                    PERMISSION_CAMERA_REQUEST_CODE
-            )
+        uri?.let {
+            val captureIntent = Intent(MediaStore.ACTION_IMAGE_CAPTURE)
+            captureIntent.putExtra(MediaStore.EXTRA_OUTPUT, it)
+            startActivityForResult(captureIntent, PHOTO_CAMERA)
         }
     }
 
@@ -118,7 +99,7 @@ class MainActivity : AppCompatActivity() {
         Log.d(TAG, "uri:${uri.toString()}")
         Log.d(TAG, "file:${file.absolutePath}")
 
-        imageBefore.setImageURI(uri)
+        binding.imageViewBefore.setImageURI(uri)
 
         val outFileSize = FileSizeUtil.getFolderOrFileSize(
                 file.absolutePath,
@@ -130,21 +111,13 @@ class MainActivity : AppCompatActivity() {
         if (bitmap == null) return
 
         CoroutineScope(Dispatchers.IO).launch {
-
             compressFile()
-            //compressFileAndroid()
-            //compressByte2Jpeg()
-
+            compressFileAndroid()
         }
-
-
-
-
     }
 
     /**
      * TODO LibJpegTurbo压缩
-     * 输入Bitmap，输出File
      */
     @SuppressLint("SetTextI18n")
     private suspend fun compressFile() = withContext(Dispatchers.IO){
@@ -152,61 +125,18 @@ class MainActivity : AppCompatActivity() {
         val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress.jpg")
 
         val time = System.currentTimeMillis()
-/*        JpegTurbo.compressBitmap(
-                bitmap = bitmap!!,
+
+        //调用JNI方法压缩
+
+        //压缩文件
+        /*JpegTurbo.compressFile2File(
+                filePath = file!!.absolutePath,
                 outputFilePath = outputFile.absolutePath
         )*/
 
+        //压缩bitmap
+        JpegTurbo.compressBitmap(bitmap = bitmap!!,outputFilePath = outputFile.absolutePath)
 
-/*        JpegTurbo.setParams(
-            input = bitmap,
-            output = outputFile.absolutePath
-        ).compress(object :CompressListener<String>{
-            override fun onStart() {
-                Log.d(TAG,"onStart")
-            }
-
-            override fun onCompleted(success: Boolean, result: String?) {
-                Log.d(TAG,"onCompleted,success:$success, result:${result}")
-            }
-        })*/
-
-/*
-        JpegTurbo.compressFile(
-            filePath = file!!.absolutePath
-        )
-*/
-
-        val byteArray = JpegTurbo.readFile2Byte(
-            filePath = file!!.absolutePath
-        )
-
-        Log.d(TAG,"byteArray:${byteArray.size}")
-
-        val bitmap_ = BitmapUtil.deconvertByte(byteArray)
-        binding.imageViewAfter.setImageBitmap(bitmap_)
-
-/*        JpegTurbo.setParams(
-            input = bitmap!!,
-            outputType = Formats.Byte
-        ).compress(object :CompressListener<ByteArray>{
-            override fun onStart() {
-                Log.d(TAG,"onStart")
-            }
-
-            override fun onCompleted(success: Boolean, result: ByteArray?) {
-                Log.d(TAG,"onCompleted,success:$success, result:${result}")
-            }
-        })*/
-
-
-/*        val outputByte :ByteArray ?= JpegTurbo.compressByteArray(
-            byte = byte!!,
-            height = height,
-            width = width
-        )
-
-        val bitmap = BitmapUtil.deconvertByte(outputByte)*/
 
         //压缩后的文件大小
         val outFileSize = FileSizeUtil.getFolderOrFileSize(
@@ -215,11 +145,10 @@ class MainActivity : AppCompatActivity() {
         )
 
         withContext(Dispatchers.Main){
-            //binding.imageViewAfter.setImageURI(Uri.parse(outputFile.absolutePath))
+            binding.imageViewAfter.setImageURI(Uri.parse(outputFile.absolutePath))
             binding.imageInfoAfter.text = "JpegTurbo bitmap压缩\n文件大小：$outFileSize KB\n压缩耗时:${System.currentTimeMillis()-time}ms"
         }
     }
-
 
     /**
      * TODO Android原生压缩
@@ -246,50 +175,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
     /**
-     * TODO LibJpegTurbo压缩
-     * 输入byte[]，输出File
+     * TODO 异步压缩
+     * 可通过async参数设置
      */
-    private suspend fun compressByte2Jpeg() = withContext(Dispatchers.IO){
-        //模拟数据
-        val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress3.jpg")
-        var byte : ByteArray ?= null
+    private fun compressAsync(){
+        //创建输出文件
+        val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress_${System.currentTimeMillis()}.jpg")
 
-        bitmap?.let {
-            byte = BitmapUtil.convertToByteArray(it)
-        }
-        if (byte== null || bitmap==null) return@withContext
+        JpegTurbo.setParams(
+                input = file!!,
+                output = outputFile
+        ).compress(object :CompressListener<String>{
+            override fun onStart() {
+                Log.d(TAG,"onStart")
+            }
 
-        val width = bitmap!!.width
-        val height = bitmap!!.height
-
-        //开始压缩
-        val time = System.currentTimeMillis()
-/*
-        val result: Boolean = JpegTurbo.compressByte2Jpeg(
-                byte = byte!!,
-                height = height,
-                width = width,
-                outputFilePath = outputFile.absolutePath
-        )
-*/
-
-
-        val outputByte :ByteArray ?= JpegTurbo.compressByte(
-            byte = byte!!,
-            height = height,
-            width = width
-        )
-
-        val bitmap = BitmapUtil.deconvertByte(outputByte)
-
-        val outFileSize = FileSizeUtil.getFolderOrFileSize(outputFile.absolutePath, FileSizeUtil.SIZETYPE_KB)
-        withContext(Dispatchers.Main){
-            binding.imageViewAfter3.setImageBitmap(bitmap)
-            //binding.imageViewAfter3.setImageURI(Uri.parse(outputFile.absolutePath))
-            binding.imageInfoAfter3.text = "JpegTurbo byte[]压缩\n文件大小：$outFileSize KB\n耗时：${System.currentTimeMillis()-time}ms"
-        }
-
+            override fun onCompleted(success: Boolean, result: String?) {
+                Log.d(TAG,"onCompleted")
+            }
+        })
     }
+
 
 }
