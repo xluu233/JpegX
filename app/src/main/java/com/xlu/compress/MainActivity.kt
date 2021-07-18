@@ -18,6 +18,7 @@ import com.xlu.compress.databinding.ActivityMainBinding
 import com.xlu.compress.utils.FileSizeUtil
 import com.xlu.jepgturbo.utils.FileUtil
 import com.xlu.jepgturbo.CompressListener
+import com.xlu.jepgturbo.Formats
 import com.xlu.jepgturbo.JpegTurbo
 import com.xlu.jepgturbo.utils.BitmapUtil
 import kotlinx.coroutines.*
@@ -110,14 +111,18 @@ class MainActivity : AppCompatActivity() {
         bitmap = BitmapUtil.convertToBitmap(file)
         if (bitmap == null) return
 
-        CoroutineScope(Dispatchers.IO).launch {
-            compressFile()
-            compressFileAndroid()
-        }
+/*        CoroutineScope(Dispatchers.IO).launch {
+            //compressFile()
+            //compressFileAndroid()
+
+        }*/
+        compressSync()
+        compressAsync()
     }
 
     /**
      * TODO LibJpegTurbo压缩
+     * 调用JNI方法压缩
      */
     @SuppressLint("SetTextI18n")
     private suspend fun compressFile() = withContext(Dispatchers.IO){
@@ -126,17 +131,11 @@ class MainActivity : AppCompatActivity() {
 
         val time = System.currentTimeMillis()
 
-        //调用JNI方法压缩
-
         //压缩文件
-        /*JpegTurbo.compressFile2File(
-                filePath = file!!.absolutePath,
-                outputFilePath = outputFile.absolutePath
-        )*/
+        //JpegTurbo.compressFile2File(filePath = file!!.absolutePath, outputFilePath = outputFile.absolutePath)
 
         //压缩bitmap
         JpegTurbo.compressBitmap(bitmap = bitmap!!,outputFilePath = outputFile.absolutePath)
-
 
         //压缩后的文件大小
         val outFileSize = FileSizeUtil.getFolderOrFileSize(
@@ -183,20 +182,48 @@ class MainActivity : AppCompatActivity() {
     private fun compressAsync(){
         //创建输出文件
         val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress_${System.currentTimeMillis()}.jpg")
+        val time = System.currentTimeMillis()
 
         JpegTurbo.setParams(
-                input = file!!,
+                input = bitmap!!,
                 output = outputFile
-        ).compress(object :CompressListener<String>{
+        ).compress(object : CompressListener<String>{
             override fun onStart() {
-                Log.d(TAG,"onStart")
+                Log.d(TAG,"compress started")
             }
 
             override fun onCompleted(success: Boolean, result: String?) {
-                Log.d(TAG,"onCompleted")
+                Log.d(TAG,"output file path is ${result}")
+
+                runOnUiThread {
+                    val outFileSize = FileSizeUtil.getFolderOrFileSize(outputFile.absolutePath, FileSizeUtil.SIZETYPE_KB)
+                    binding.imageViewAfter2.setImageURI(Uri.parse(result))
+                    binding.imageInfoAfter2.text = "JpegTurbo 异步压缩\n文件大小：$outFileSize KB\n压缩耗时:${System.currentTimeMillis()-time}ms"
+                }
             }
         })
+
     }
 
+    /**
+     * TODO 同步压缩
+     * async = false
+     */
+    private fun compressSync(){
+        val outputFile = FileUtil.createJpegFile(this@MainActivity, "${file!!.name.replace(".jpg", "")}_compress_${System.currentTimeMillis()}.jpg")
+        val time = System.currentTimeMillis()
+
+        val outFilePath : String ?= JpegTurbo.setParams(
+                input = file!!,
+                output = outputFile,
+                async = false
+        ).compress<String>()
+
+
+        val outFileSize = FileSizeUtil.getFolderOrFileSize(outputFile.absolutePath, FileSizeUtil.SIZETYPE_KB)
+        binding.imageViewAfter.setImageURI(Uri.parse(outFilePath))
+        binding.imageInfoAfter.text = "JpegTurbo 同步压缩\n文件大小：$outFileSize KB\n压缩耗时:${System.currentTimeMillis()-time}ms"
+
+    }
 
 }

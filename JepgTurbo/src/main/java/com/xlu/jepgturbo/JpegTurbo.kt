@@ -158,14 +158,19 @@ object JpegTurbo {
     //开始多线程分块压缩
     private var multiThread:Boolean = false
 
+    //输出图像最大数据: 1024Kb
+    private var maxSize:Int = 1024
+
+
     /**
      * TODO 设置压缩参数
      *
      * @param input 支持输入类型：Bitmap, ByteArray, File, File路径(String)
      * @param output 支持输出类型：Bitmap, ByteArray, File路径(String)
      * @param outputType 输入、输出类型会根据输入、输出文件自动判断，但是如果没有设置输出，必须手动设置输出类型
-     * @param width
-     * @param height
+     * @param width 宽度
+     * @param height 高度
+     * @param maxSize 输出图像最大大小，单位Kb
      * @param quality 压缩质量：0-100
      * @param async 异步压缩，默认开启
      * @param multiThread 开启多线程分区压缩，默认关闭
@@ -177,6 +182,7 @@ object JpegTurbo {
             outputType: Formats ?= null,
             width: Int = 0,
             height: Int = 0,
+            maxSize:Int = 1024,
             quality: Int = 60,
             async:Boolean = true,
             multiThread:Boolean = false
@@ -256,7 +262,7 @@ object JpegTurbo {
         return T::class.java
     }
 
-    fun <T> compress(listener: CompressListener<T> ?= null) : Any?{
+    fun <T> compress(listener: CompressListener<T> ?= null) : T?{
         if (!setParams) throw Exception("you haven't set the parameters")
         if (inputType == null) throw Exception("intput type is null, or an unsupported type")
         if (outputType == null) throw Exception("output type is null, or an unsupported type")
@@ -264,8 +270,8 @@ object JpegTurbo {
         if (async){
             thread {
                 startCompress(listener)
+                clear()
             }
-            clear()
             return null
         }else{
             val result =  startCompress(listener)
@@ -276,7 +282,9 @@ object JpegTurbo {
 
 
     @Synchronized
-    private fun <T> startCompress(listener: CompressListener<T> ?= null) : Any?{
+    private fun <T> startCompress(listener: CompressListener<T> ?= null) : T?{
+        Log.d(TAG,"startCompress")
+        Log.d(TAG,"inputType:${inputType},outputType:${outputType}")
         when(inputType){
             Formats.File -> {
                 if (inputFilePath.isNullOrEmpty()) throw Exception("inputFilePath is null, or an unsupported type")
@@ -383,13 +391,13 @@ object JpegTurbo {
         completed = true
         when(outputType){
             Formats.Bitmap -> {
-                return outputBitmap as Bitmap
+                return outputBitmap as T
             }
             Formats.File -> {
-                return outputFilePath as String
+                return outputFilePath as T
             }
             Formats.Byte -> {
-                return outputByte as ByteArray
+                return outputByte as T
             }
             else -> return null
         }
