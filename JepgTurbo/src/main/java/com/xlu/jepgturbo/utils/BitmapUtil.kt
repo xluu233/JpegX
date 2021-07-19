@@ -1,9 +1,7 @@
 package com.xlu.jepgturbo.utils
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.Matrix
+import android.graphics.*
 import android.media.ExifInterface
 import android.net.Uri
 import android.provider.MediaStore
@@ -66,8 +64,8 @@ object BitmapUtil {
         try {
             val exif = ExifInterface(path)
             val orientation = exif.getAttributeInt(
-                    ExifInterface.TAG_ORIENTATION,
-                    ExifInterface.ORIENTATION_NORMAL
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL
             )
             when (orientation) {
                 ExifInterface.ORIENTATION_ROTATE_90 -> result = 90f
@@ -139,6 +137,25 @@ object BitmapUtil {
 
         bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size);
         return bitmap
+    }
+
+
+    fun zoomImg(bm: Bitmap?, targetWidth: Int, targetHeight: Int): Bitmap? {
+        if (bm==null || bm.isRecycled){
+            return null
+        }
+        val srcWidth = bm.width
+        val srcHeight = bm.height
+        val widthScale = targetWidth * 1.0f / srcWidth
+        val heightScale = targetHeight * 1.0f / srcHeight
+        val matrix = Matrix()
+        matrix.postScale(widthScale, heightScale, 0f, 0f)
+        // 如需要可自行设置 Bitmap.Config.RGB_8888 等等
+        val bmpRet = Bitmap.createBitmap(targetWidth, targetHeight, Bitmap.Config.RGB_565)
+        val canvas = Canvas(bmpRet)
+        val paint = Paint()
+        canvas.drawBitmap(bm, matrix, paint)
+        return bmpRet
     }
 
 }

@@ -38,7 +38,6 @@ object JpegTurbo {
         outputFilePath: String
     ):Boolean
 
-
     /**
      * TODO 输入：byte[]   输出：byte[]
      * @param byte
@@ -308,18 +307,12 @@ object JpegTurbo {
                         listener?.onCompleted(result, outputFilePath as T)
                     }
                     Formats.Bitmap -> {
-                        val result = compressExifFile()
-                        outputBitmap = if (result){
-                            BitmapUtil.convertToBitmap(outputFilePath)
-                        }else null
-                        listener?.onCompleted(result, outputBitmap as T)
+                        outputBitmap = BitmapUtil.convertToBitmap(inputFilePath)
+                        listener?.onCompleted(outputBitmap!=null, outputBitmap as T)
                     }
                     Formats.Byte -> {
-                        val result = compressExifFile()
-                        outputByte = if (result){
-                            FileUtil.file2Byte(File(outputFilePath))
-                        }else null
-                        listener?.onCompleted(result, outputByte as T)
+                        outputByte = FileUtil.file2Byte(File(inputFilePath))
+                        listener?.onCompleted(outputByte!=null, outputByte as T)
                     }
                 }
             }
@@ -373,25 +366,26 @@ object JpegTurbo {
                         listener?.onCompleted(result, outputFilePath as T)
                     }
                     Formats.Bitmap -> {
-                        //TODO 待完善
-                        val byte: ByteArray? = BitmapUtil.convertToByteArray(inputBitmap)
-                        byte?.let {
-                            listener?.onStart()
-                            if (width==0) width = inputBitmap!!.width
-                            if (height==0) height = inputBitmap!!.height
-                            val outputByte = compressByte(it, width, height, quality)
-                            outputBitmap = BitmapUtil.deconvertByte(outputByte)
-                        }
+                        //Bitmap压缩无意义，这里只做裁剪
+                        listener?.onStart()
+                        if (width==0) width = inputBitmap!!.width
+                        if (height==0) height = inputBitmap!!.height
+
+                        outputBitmap = BitmapUtil.zoomImg(inputBitmap, width, height)
                         listener?.onCompleted(outputBitmap != null, outputBitmap as T)
                     }
                     Formats.Byte -> {
+                        var time = System.currentTimeMillis()
                         val byte: ByteArray? = BitmapUtil.convertToByteArray(inputBitmap)
+                        Log.d(TAG,"delta_time:${System.currentTimeMillis()-time}")
+                        time = System.currentTimeMillis()
                         byte?.let {
                             listener?.onStart()
                             if (width==0) width = inputBitmap!!.width
                             if (height==0) height = inputBitmap!!.height
                             outputByte = compressByte(it, width, height, quality)
                         }
+                        Log.d(TAG,"delta_time2:${System.currentTimeMillis()-time}")
                         listener?.onCompleted(outputByte != null, outputByte as T)
                     }
                 }

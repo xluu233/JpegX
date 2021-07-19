@@ -114,10 +114,33 @@ class MainActivity : AppCompatActivity() {
             //compressFileAndroid()
             //compressByte()
             //compressByte2()
+            compressBitmap2Byte()
         }
-        compressSync()
+        //compressSync()
         //compressAsync()
     }
+
+
+
+    private fun compressBitmap2Byte() {
+        val time = System.currentTimeMillis()
+        JpegTurbo.setParams(
+                input = bitmap!!,
+                outputType = Formats.Byte
+        ).compress(object :CompressListener<ByteArray>{
+            override fun onStart() {
+
+            }
+
+            override fun onCompleted(success: Boolean, result: ByteArray?) {
+                val outBit = BitmapUtil.deconvertByte(result)
+                Log.d(TAG,"delta_time:${System.currentTimeMillis()-time}")
+                binding.imageViewBefore.setImageBitmap(outBit)
+            }
+        })
+
+    }
+
 
     /**
      * TODO LibJpegTurbo压缩
