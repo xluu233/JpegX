@@ -113,9 +113,9 @@ class MainActivity : AppCompatActivity() {
             //compressFile()
             //compressFileAndroid()
             //compressByte()
-            compressByte2()
+            //compressByte2()
         }
-        //compressSync()
+        compressSync()
         //compressAsync()
     }
 
@@ -217,7 +217,6 @@ class MainActivity : AppCompatActivity() {
                 output = outputFile,
                 async = false
         ).compress<String>()
-
 
         val outFileSize = FileSizeUtil.getFolderOrFileSize(outputFile.absolutePath, FileSizeUtil.SIZETYPE_KB)
         binding.imageViewAfter.setImageURI(Uri.parse(outFilePath))

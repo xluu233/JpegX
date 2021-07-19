@@ -28,12 +28,12 @@ typedef uint8_t BYTE;
 class JpegHelper {
 
     private:
-    tjhandle handle;
+//    tjhandle handle;
 
     public:
 
-    int initHandle();
-    int destroyHandle();
+//    int initHandle();
+//    int destroyHandle();
 
     /**
      * TODO 读取Jpeg文件信息

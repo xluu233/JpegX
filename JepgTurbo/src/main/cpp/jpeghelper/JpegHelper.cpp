@@ -165,7 +165,7 @@ int JpegHelper::compressJpeg2Jpeg(const char *filePath, const char *out_filePath
     jpeg_stdio_src(&cinfo, inFile);
     jpeg_read_header(&cinfo, TRUE);
     cinfo.out_color_components = nComponent;
-    cinfo.out_color_space = JCS_EXT_RGBA; // 设置输出格式
+    cinfo.out_color_space = JCS_EXT_RGBA;
 
     jpeg_start_decompress(&cinfo);
     row_stride = cinfo.image_width << 2;
@@ -398,6 +398,7 @@ int JpegHelper::write_jpeg_file(const char *filename, int image_height, int imag
     return 1;
 }
 
+/*
 int JpegHelper::initHandle() {
     handle = tjInitCompress();
     return handle == nullptr ? JNI_FALSE : JNI_TRUE;
@@ -415,3 +416,4 @@ int JpegHelper::destroyHandle() {
         return code;
     }
 }
+*/

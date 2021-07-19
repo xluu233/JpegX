@@ -81,7 +81,7 @@ object JpegTurbo {
      * @param quality
      * @return
      */
-    external fun compressFile(
+    private external fun compressFile(
         filePath:String,
         width: Int=0,
         height: Int=0,
@@ -193,10 +193,12 @@ object JpegTurbo {
             is String -> {
                 this.inputType = Formats.File
                 inputFilePath = input
+                checkFile(input)
             }
             is File -> {
                 this.inputType = Formats.File
                 inputFilePath = input.absolutePath
+                checkFile(input.name)
             }
             is Bitmap -> {
                 this.inputType = Formats.Bitmap
@@ -243,8 +245,15 @@ object JpegTurbo {
         this.multiThread = multiThread
         this.maxSize = maxSize
 
-        if (this.outputType==null) throw Exception("output or outputType is null")
 
+    }
+
+    private fun checkFile(name: String) {
+        if (name.contains("jpg") || name.contains(".jpeg")){
+            Log.d(TAG,"fileName is:${name}")
+        }else{
+            throw Exception("file is not support")
+        }
     }
 
     /**
@@ -257,15 +266,15 @@ object JpegTurbo {
         return this.compress<Any>()
     }
 
-    inline fun <reified T> getType(value: T) : Any{
+    inline fun <reified T> getType(value: T) {
         println("$value 的类型是 ${T::class.java}")
-        return T::class.java
     }
 
     fun <T> compress(listener: CompressListener<T> ?= null) : T?{
         if (!setParams) throw Exception("you haven't set the parameters")
         if (inputType == null) throw Exception("intput type is null, or an unsupported type")
         if (outputType == null) throw Exception("output type is null, or an unsupported type")
+
 
         if (async){
             thread {
@@ -411,14 +420,11 @@ object JpegTurbo {
         //拷贝原文件exif信息
         val sourceExifInterface = ExifInterface(inputFilePath!!)
 
-        val result: Boolean
         //开始压缩File
         if (outputFilePath.isNullOrEmpty()){
             outputFilePath = inputFilePath
-            result = compressFile(inputFilePath!!,width, height, quality)
-        }else{
-            result = compressFile2File(inputFilePath!!, outputFilePath!!,width, height, quality)
         }
+        val result: Boolean = compressFile2File(inputFilePath!!, outputFilePath!!,quality = quality)
 
         //复制原文件exif信息到输出文件
         if (result){

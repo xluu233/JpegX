@@ -20,6 +20,8 @@
 typedef uint8_t BYTE;
 typedef struct my_error_mgr *my_error_ptr;
 
+JpegHelper jpegHelper;
+
 //get system time
 long getCurrentTime()
 {
@@ -57,7 +59,6 @@ jbyteArray unchar_to_byteArray(JNIEnv *env, unsigned char *buf, int len) {
     env->SetByteArrayRegion(array, 0, len, reinterpret_cast<jbyte *>(buf));
     return array;
 }
-
 
 
 extern "C"
@@ -123,7 +124,7 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobje
     LOGD("tran bitmap is %ld ms ",delta);
 
     //setup2 : 开始压缩
-    JpegHelper jpegHelper;
+    //JpegHelper jpegHelper;
     int resultCode = jpegHelper.GenerateBitmap2Jpeg(tmpData, width, height,quality,location);
 
     if(resultCode==0){
@@ -189,7 +190,7 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressByte2Jpeg(JNIEnv *env, jobject thiz, jb
     jbyte *rgbBuffer = env->GetByteArrayElements(byte, 0);
     JSAMPLE *dstbuff = (unsigned char*)rgbBuffer;
 
-    JpegHelper jpegHelper;
+    //JpegHelper jpegHelper;
     int result = jpegHelper.write_jpeg_file(location, height, width, quality, dstbuff);
 
     if(result==0){
@@ -207,6 +208,7 @@ extern "C"
 JNIEXPORT jboolean JNICALL
 Java_com_xlu_jepgturbo_JpegTurbo_compressFile(JNIEnv *env, jobject thiz, jstring file_path, jint width, jint height,jint quality) {
 
+    LOGD("compressFile");
     int file_width = 0;
     int file_height = 0;
     int file_size = 0;
@@ -214,7 +216,7 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressFile(JNIEnv *env, jobject thiz, jstring
     unsigned char *dstBuf = NULL;
     const char *location = env->GetStringUTFChars(file_path,NULL);
 
-    JpegHelper jpegHelper;
+    //JpegHelper jpegHelper;
     int result = jpegHelper.read_jpeg_file(location,&dstBuf, &file_size, &file_width, &file_height);
     if(result==0){
         LOGD("read file error");
@@ -244,10 +246,10 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressFile2File(JNIEnv *env, jobject thiz, js
                                                    jstring output_file_path, jint width, jint height,
                                                    jint quality) {
 
+    LOGD("compressFile2File");
     const char *location = env->GetStringUTFChars(file_path,NULL);
     const char *location_out = env->GetStringUTFChars(output_file_path,NULL);
 
-    JpegHelper jpegHelper;
     int result = jpegHelper.compressJpeg2Jpeg(location,location_out,quality,width,height);
 
     if(result==0){
@@ -269,7 +271,6 @@ Java_com_xlu_jepgturbo_JpegTurbo_readFile2Byte(JNIEnv *env, jobject thiz, jstrin
     unsigned char *dstBuf = NULL;
     const char *location = env->GetStringUTFChars(file_path,NULL);
 
-    JpegHelper jpegHelper;
     int result = jpegHelper.read_jpeg_file(location,&dstBuf, &file_size, &file_width, &file_height);
 
     if(result==0){
