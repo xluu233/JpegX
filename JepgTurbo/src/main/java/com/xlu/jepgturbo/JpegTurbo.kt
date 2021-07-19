@@ -6,7 +6,6 @@ import android.util.Log
 import com.xlu.jepgturbo.utils.BitmapUtil
 import com.xlu.jepgturbo.utils.FileUtil
 import java.io.File
-import java.util.*
 import kotlin.concurrent.thread
 
 /**
@@ -171,7 +170,6 @@ object JpegTurbo {
      * @param maxSize 输出图像最大大小，单位Kb
      * @param quality 压缩质量：0-100
      * @param async 异步压缩，默认开启
-     * @param multiThread 开启多线程分区压缩，默认关闭
      * @return
      */
     fun setParams(
@@ -182,8 +180,7 @@ object JpegTurbo {
             height: Int = 0,
             maxSize:Int = 1024,
             quality: Int = 60,
-            async:Boolean = true,
-            multiThread:Boolean = false
+            async:Boolean = true
     ): JpegTurbo = apply {
         setParams = true
         completed = false
@@ -241,10 +238,8 @@ object JpegTurbo {
         this.height = height
         this.quality = quality
         this.async = async
-        this.multiThread = multiThread
+        //this.multiThread = multiThread
         this.maxSize = maxSize
-
-
     }
 
     private fun checkFile(name: String) {
@@ -257,8 +252,6 @@ object JpegTurbo {
 
     /**
      * TODO 不设置回调，注意这里是异步调用
-     * @param listener
-     * @param async true:异步压缩，false:同步压缩
      */
     @JvmName("compress1")
     fun compress() : Any?{
