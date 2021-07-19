@@ -54,7 +54,6 @@ object JpegTurbo {
         quality: Int = 60
     ):ByteArray?
 
-
     /**
      * TODO 输入：byte[]   输出：File
      * @param byte
@@ -242,6 +241,7 @@ object JpegTurbo {
         this.quality = quality
         this.async = async
         this.multiThread = multiThread
+        this.maxSize = maxSize
 
         if (this.outputType==null) throw Exception("output or outputType is null")
 

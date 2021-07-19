@@ -143,8 +143,7 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobje
 
 extern "C"
 JNIEXPORT jbyteArray JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_compressByte(JNIEnv *env, jobject thiz, jbyteArray byte,
-                                              jint width, jint height, jint quality) {
+Java_com_xlu_jepgturbo_JpegTurbo_compressByte(JNIEnv *env, jobject thiz, jbyteArray byte,jint width, jint height, jint quality) {
 
     LOGD("compressByteArray");
     jbyte *rgbBuffer = env->GetByteArrayElements(byte, 0);

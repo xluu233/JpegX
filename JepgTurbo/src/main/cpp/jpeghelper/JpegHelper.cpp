@@ -397,3 +397,21 @@ int JpegHelper::write_jpeg_file(const char *filename, int image_height, int imag
     fclose(outfile);
     return 1;
 }
+
+int JpegHelper::initHandle() {
+    handle = tjInitCompress();
+    return handle == nullptr ? JNI_FALSE : JNI_TRUE;
+}
+
+int JpegHelper::destroyHandle() {
+    if (handle == nullptr) {
+        return -1;
+    }
+    int code = 0;
+    if ((code = tjDestroy(handle)) == 0) {
+        handle = nullptr;
+        return JNI_TRUE;
+    } else {
+        return code;
+    }
+}

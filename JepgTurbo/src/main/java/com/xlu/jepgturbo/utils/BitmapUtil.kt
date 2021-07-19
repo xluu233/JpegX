@@ -7,7 +7,10 @@ import android.graphics.Matrix
 import android.media.ExifInterface
 import android.net.Uri
 import android.provider.MediaStore
-import java.io.*
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.io.IOException
+import java.io.InputStream
 import java.nio.ByteBuffer
 
 
@@ -133,6 +136,7 @@ object BitmapUtil {
     fun deconvertByte(byteArray: ByteArray?):Bitmap?{
         if (byteArray==null) return null
         var bitmap : Bitmap ?= null
+
         bitmap = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size);
         return bitmap
     }
