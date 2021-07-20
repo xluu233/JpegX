@@ -6,6 +6,10 @@ import android.util.Log
 import com.xlu.jepgturbo.utils.BitmapUtil
 import com.xlu.jepgturbo.utils.FileUtil
 import java.io.File
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.LinkedBlockingQueue
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.TimeUnit
 import kotlin.concurrent.thread
 
 /**
@@ -158,6 +162,11 @@ object JpegTurbo {
     //输出图像最大数据: 1024Kb
     private var maxSize:Int = 1024
 
+    //压缩任务线程池
+    private val threadPool: ExecutorService by lazy(mode = LazyThreadSafetyMode.SYNCHRONIZED) {
+        ThreadPoolExecutor(1, 4, 0, TimeUnit.MILLISECONDS, LinkedBlockingQueue())
+    }
+
 
     /**
      * TODO 设置压缩参数
@@ -250,9 +259,6 @@ object JpegTurbo {
         }
     }
 
-    /**
-     * TODO 不设置回调，注意这里是异步调用
-     */
     @JvmName("compress1")
     fun compress() : Any?{
         return this.compress<Any>()
@@ -267,9 +273,8 @@ object JpegTurbo {
         if (inputType == null) throw Exception("intput type is null, or an unsupported type")
         if (outputType == null) throw Exception("output type is null, or an unsupported type")
 
-
-        if (async){
-            thread {
+        if (async || listener==null){
+            threadPool.execute {
                 startCompress(listener)
                 clear()
             }
@@ -281,8 +286,6 @@ object JpegTurbo {
         }
     }
 
-
-    @Synchronized
     private fun <T> startCompress(listener: CompressListener<T> ?= null) : T?{
         Log.d(TAG,"startCompress")
         Log.d(TAG,"inputType:${inputType},outputType:${outputType}")
@@ -315,7 +318,6 @@ object JpegTurbo {
                 when (outputType) {
                     Formats.File -> {
                         if (outputFilePath.isNullOrEmpty()) throw Exception("output file path is null")
-                        listener?.onStart()
                         val result = compressByte2Jpeg(
                                 inputByte!!,
                                 width,
@@ -327,7 +329,6 @@ object JpegTurbo {
                     }
                     Formats.Bitmap -> {
                         inputByte?.let {
-                            listener?.onStart()
                             val outputByte = compressByte(it, width, height, quality)
                             outputBitmap = BitmapUtil.deconvertByte(outputByte)
                         }
@@ -335,7 +336,6 @@ object JpegTurbo {
                     }
                     Formats.Byte -> {
                         inputByte?.let {
-                            listener?.onStart()
                             outputByte = compressByte(it, width, height, quality)
                         }
                         listener?.onCompleted(outputByte != null, outputByte as T)
@@ -345,10 +345,12 @@ object JpegTurbo {
             Formats.Bitmap -> {
                 if (inputBitmap == null) throw Exception("input bitmap is null")
                 listener?.onStart()
+                if (width==0) width = inputBitmap!!.width
+                if (height==0) height = inputBitmap!!.height
                 when (outputType) {
                     Formats.File -> {
                         if (outputFilePath.isNullOrEmpty()) throw Exception("output file path is null")
-                        listener?.onStart()
+
                         val result = compressBitmap(
                                 inputBitmap!!,
                                 width,
@@ -360,10 +362,6 @@ object JpegTurbo {
                     }
                     Formats.Bitmap -> {
                         //Bitmap压缩无意义，这里只做裁剪
-                        listener?.onStart()
-                        if (width==0) width = inputBitmap!!.width
-                        if (height==0) height = inputBitmap!!.height
-
                         outputBitmap = BitmapUtil.zoomImg(inputBitmap, width, height)
                         listener?.onCompleted(outputBitmap != null, outputBitmap as T)
                     }
@@ -373,9 +371,6 @@ object JpegTurbo {
                         Log.d(TAG,"delta_time:${System.currentTimeMillis()-time}")
                         time = System.currentTimeMillis()
                         byte?.let {
-                            listener?.onStart()
-                            if (width==0) width = inputBitmap!!.width
-                            if (height==0) height = inputBitmap!!.height
                             outputByte = compressByte(it, width, height, quality)
                         }
                         Log.d(TAG,"delta_time2:${System.currentTimeMillis()-time}")
@@ -453,6 +448,7 @@ object JpegTurbo {
         outputBitmap = null
         outputFilePath = null
         outputByte = null
+
     }
 
 

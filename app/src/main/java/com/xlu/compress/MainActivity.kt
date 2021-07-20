@@ -123,6 +123,7 @@ class MainActivity : AppCompatActivity() {
 
 
     private fun compressBitmap2Byte() {
+        val bitmap = BitmapUtil.convertToBitmap(file)
         val time = System.currentTimeMillis()
         JpegTurbo.setParams(
                 input = bitmap!!,
@@ -133,9 +134,9 @@ class MainActivity : AppCompatActivity() {
             }
 
             override fun onCompleted(success: Boolean, result: ByteArray?) {
-                val outBit = BitmapUtil.deconvertByte(result)
+                //val outBit = BitmapUtil.deconvertByte(result)
                 Log.d(TAG,"delta_time:${System.currentTimeMillis()-time}")
-                binding.imageViewBefore.setImageBitmap(outBit)
+                //binding.imageViewBefore.setImageBitmap(outBit)
             }
         })
 
