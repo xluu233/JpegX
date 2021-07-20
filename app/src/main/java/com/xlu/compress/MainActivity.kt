@@ -110,37 +110,16 @@ class MainActivity : AppCompatActivity() {
         if (bitmap == null) return
 
         CoroutineScope(Dispatchers.IO).launch {
-            //compressFile()
-            //compressFileAndroid()
+            compressFile()
+            compressFileAndroid()
             //compressByte()
             //compressByte2()
-            compressBitmap2Byte()
+            //compressBitmap2Byte()
         }
         //compressSync()
         //compressAsync()
     }
 
-
-
-    private fun compressBitmap2Byte() {
-        val bitmap = BitmapUtil.convertToBitmap(file)
-        val time = System.currentTimeMillis()
-        JpegTurbo.setParams(
-                input = bitmap!!,
-                outputType = Formats.Byte
-        ).compress(object :CompressListener<ByteArray>{
-            override fun onStart() {
-
-            }
-
-            override fun onCompleted(success: Boolean, result: ByteArray?) {
-                //val outBit = BitmapUtil.deconvertByte(result)
-                Log.d(TAG,"delta_time:${System.currentTimeMillis()-time}")
-                //binding.imageViewBefore.setImageBitmap(outBit)
-            }
-        })
-
-    }
 
 
     /**
@@ -265,11 +244,14 @@ class MainActivity : AppCompatActivity() {
                 async = false
         ).compress<ByteArray>()
 
+        val outFileSize = output!!.size/1024
         val _bitmap = BitmapUtil.deconvertByte(output)
         withContext(Dispatchers.Main){
             binding.imageViewAfter.setImageBitmap(_bitmap)
+            binding.imageInfoAfter.text = "JpegTurbo byte[]压缩\n文件大小：$outFileSize KB"
         }
     }
+
 
 
     private suspend fun compressByte2(){
@@ -352,5 +334,28 @@ class MainActivity : AppCompatActivity() {
         System.arraycopy(byte_2, 0, byte_3, byte_1.size, byte_2.size)
         return byte_3
     }
+
+
+
+    private fun compressBitmap2Byte() {
+        val bitmap = BitmapUtil.convertToBitmap(file)
+        val time = System.currentTimeMillis()
+        JpegTurbo.setParams(
+                input = bitmap!!,
+                outputType = Formats.Byte
+        ).compress(object :CompressListener<ByteArray>{
+            override fun onStart() {
+
+            }
+
+            override fun onCompleted(success: Boolean, result: ByteArray?) {
+                val outBit = BitmapUtil.deconvertByte(result)
+                Log.d(TAG,"delta_time:${System.currentTimeMillis()-time}")
+                binding.imageViewBefore.setImageBitmap(outBit)
+            }
+        })
+
+    }
+
 
 }

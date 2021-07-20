@@ -273,7 +273,7 @@ object JpegTurbo {
         if (inputType == null) throw Exception("intput type is null, or an unsupported type")
         if (outputType == null) throw Exception("output type is null, or an unsupported type")
 
-        if (async || listener==null){
+        if (async){
             threadPool.execute {
                 startCompress(listener)
                 clear()
