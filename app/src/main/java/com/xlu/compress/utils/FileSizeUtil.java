@@ -63,6 +63,10 @@ public class FileSizeUtil {
         return FormetFileSize(blockSize);
     }
 
+    public static String getAutoFolderOrFileSize(File file){
+        return getAutoFolderOrFileSize(file.getAbsolutePath());
+    }
+
 
     /**
      * 获取指定文件的大小

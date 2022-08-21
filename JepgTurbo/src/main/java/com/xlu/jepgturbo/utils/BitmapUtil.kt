@@ -18,7 +18,7 @@ import java.nio.ByteBuffer
  * @Author AlexLu_1406496344@qq.com
  * @Date 2021/7/13 15:29
  */
-object BitmapUtil {
+internal object BitmapUtil {
 
     /**
      * TODO file转bitmap

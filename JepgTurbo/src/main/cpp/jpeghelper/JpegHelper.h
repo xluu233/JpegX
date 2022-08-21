@@ -2,6 +2,7 @@
 #ifndef INSTANTGLSL_JPEGHELPER_H
 #define INSTANTGLSL_JPEGHELPER_H
 
+
 #include <jni.h>
 #include <string>
 #include <android/log.h>
@@ -28,12 +29,14 @@ typedef uint8_t BYTE;
 class JpegHelper {
 
     private:
-//    tjhandle handle;
+    tjhandle handle;
 
     public:
 
-//    int initHandle();
-//    int destroyHandle();
+//    tjhandle handle;
+
+    int initHandle();
+    int destroyHandle();
 
     /**
      * TODO 读取Jpeg文件信息
@@ -60,6 +63,25 @@ class JpegHelper {
     /*直接压缩Jpeg文件*/
     int compressJpeg2Jpeg(const char *filePath,const char *out_filePath,int quality, int width, int height);
 
+    int bitmap2Byte(JNIEnv *env, jobject bitmap,jbyteArray *output, int w, int h, int quality);
+
+    int compressRgba8888ToJpeg(const unsigned char *srcBuf,
+                               int width, int height,
+                               unsigned char **jpegBuf,
+                               unsigned long *jpegSize,
+                               int quality);
+
+    int compressByteToByte(const unsigned char *srcBuf,
+                               int width, int height,
+                               unsigned char **jpegBuf,
+                               unsigned long *jpegSize,
+                               int quality);
+
+    int compressI420ToJpeg(const unsigned char *srcBuf,
+                           int width, int height,
+                           unsigned char **jpegBuf,
+                           unsigned long *jpegSize,
+                           int quality);
 
 };
 

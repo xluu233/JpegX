@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <ctime>
 #include <zconf.h>
-#include <sys/time.h>
+#include <ctime>
 #include <vector>
 
 #include "jpeghelper/JpegHelper.h"
@@ -21,6 +21,7 @@ typedef uint8_t BYTE;
 typedef struct my_error_mgr *my_error_ptr;
 
 JpegHelper jpegHelper;
+
 
 //get system time
 long getCurrentTime()
@@ -63,7 +64,7 @@ jbyteArray unchar_to_byteArray(JNIEnv *env, unsigned char *buf, int len) {
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobject bitmap,jint _width,jint _height,jint quality, jstring filePath) {
+Java_com_xlu_jepgturbo_utils_JpegNative_compressBitmap(JNIEnv *env, jobject thiz, jobject bitmap, jint _width, jint _height, jint quality, jstring filePath) {
 
     const char *location = env->GetStringUTFChars(filePath,NULL);
 
@@ -87,6 +88,7 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobje
         LOGD("lock pixels failed");
     }
 
+
     int width;
     int height;
     if (0 == _width){
@@ -102,7 +104,7 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobje
     }
     LOGD("wid id %d , height is %d",width,height);
 
-    //setup1 : 将bitmap转换为Byte
+    //setup1: 将bitmap转换为Byte
     long start = getCurrentTime();
     data = static_cast<BYTE *>(malloc(width * height * 3));
     tmpData = data;
@@ -124,7 +126,6 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobje
     LOGD("tran bitmap is %ld ms ",delta);
 
     //setup2 : 开始压缩
-    //JpegHelper jpegHelper;
     int resultCode = jpegHelper.GenerateBitmap2Jpeg(tmpData, width, height,quality,location);
 
     if(resultCode==0){
@@ -144,54 +145,45 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressBitmap(JNIEnv *env, jobject thiz, jobje
 
 extern "C"
 JNIEXPORT jbyteArray JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_compressByte(JNIEnv *env, jobject thiz, jbyteArray byte,jint width, jint height, jint quality) {
+Java_com_xlu_jepgturbo_utils_JpegNative_compressByte2Byte(JNIEnv *env, jobject thiz, jbyteArray input_byte, jint width, jint height, jint quality) {
 
-    LOGD("compressByteArray");
-    jbyte *rgbBuffer = env->GetByteArrayElements(byte, 0);
-
-    tjhandle handle = NULL;
-    int flags = 0;
-    int subsamp = TJSAMP_420;
-    int pixelfmt = TJPF_RGBA;
-
-    handle = tjInitCompress();
-    if (NULL == handle){
-        return NULL;
-    }
-
-    unsigned char *srcbuf = (unsigned char*)rgbBuffer;
+    jbyte *rgbBuffer = env->GetByteArrayElements(input_byte, 0);
+    const unsigned char *srcBuf = (unsigned char*) rgbBuffer;
     unsigned char *dstBuf = NULL;
-    unsigned long outjpg_size;
+    unsigned long jpegSize = 0;
 
-    int ret = tjCompress2(handle, srcbuf, width, 0, height, pixelfmt, &dstBuf, &outjpg_size, subsamp, quality, flags);
+    LOGI("jbyte %d", sizeof(rgbBuffer));
 
-    tjDestroy(handle);
-    if (0 != ret) {
-        LOGD("compress error");
-        return NULL;
+    jpegHelper.initHandle();
+
+    LOGI("compressRgba8888ToJpeg start");
+    int compressResult = jpegHelper.compressByteToByte(srcBuf, width, height, &dstBuf, &jpegSize, quality);
+    LOGI("compressRgba8888ToJpeg finished");
+
+
+    if (compressResult != 0) {
+        LOGE("compress failed , errorCode is %d", compressResult);
+        return nullptr;
+    } else {
+        jbyteArray result = env->NewByteArray(jpegSize);
+        env->SetByteArrayRegion(result, 0, jpegSize, reinterpret_cast<const jbyte *>(dstBuf));
+        LOGE("compress success , jpegSize  %d", jpegSize);
+        free(dstBuf);
+        return result;
     }
-
-    jbyteArray data = env->NewByteArray(outjpg_size);
-    env->SetByteArrayRegion(data, 0, outjpg_size, reinterpret_cast<const jbyte *>(dstBuf));
-
-    free(dstBuf);
-    env->ReleaseByteArrayElements(byte, rgbBuffer, 0);
-
-    return data;
 }
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_compressByte2Jpeg(JNIEnv *env, jobject thiz, jbyteArray byte,jint width, jint height, jint quality,jstring output_file_path) {
+Java_com_xlu_jepgturbo_utils_JpegNative_compressByte2File(JNIEnv *env, jobject thiz, jbyteArray byte, jint width, jint height, jint quality, jstring output_file_path) {
 
     LOGD("compressByte2Jpeg");
     const char *location = env->GetStringUTFChars(output_file_path,NULL);
 
     jbyte *rgbBuffer = env->GetByteArrayElements(byte, 0);
-    JSAMPLE *dstbuff = (unsigned char*)rgbBuffer;
+    unsigned char *dstBuffer = (unsigned char*)rgbBuffer;
 
-    //JpegHelper jpegHelper;
-    int result = jpegHelper.write_jpeg_file(location, height, width, quality, dstbuff);
+    int result = jpegHelper.write_jpeg_file(location, height, width, quality, dstBuffer);
 
     if(result==0){
         LOGD("write file error");
@@ -206,7 +198,7 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressByte2Jpeg(JNIEnv *env, jobject thiz, jb
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_compressFile(JNIEnv *env, jobject thiz, jstring file_path, jint width, jint height,jint quality) {
+Java_com_xlu_jepgturbo_utils_JpegNative_compressFile(JNIEnv *env, jobject thiz, jstring file_path, jint width, jint height, jint quality) {
 
     LOGD("compressFile");
     int file_width = 0;
@@ -242,9 +234,9 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressFile(JNIEnv *env, jobject thiz, jstring
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_compressFile2File(JNIEnv *env, jobject thiz, jstring file_path,
-                                                   jstring output_file_path, jint width, jint height,
-                                                   jint quality) {
+Java_com_xlu_jepgturbo_utils_JpegNative_compressFile2File(JNIEnv *env, jobject thiz, jstring file_path,
+                                               jstring output_file_path, jint width, jint height,
+                                               jint quality) {
 
     LOGD("compressFile2File");
     const char *location = env->GetStringUTFChars(file_path,NULL);
@@ -262,7 +254,7 @@ Java_com_xlu_jepgturbo_JpegTurbo_compressFile2File(JNIEnv *env, jobject thiz, js
 
 extern "C"
 JNIEXPORT jbyteArray JNICALL
-Java_com_xlu_jepgturbo_JpegTurbo_readFile2Byte(JNIEnv *env, jobject thiz, jstring file_path) {
+Java_com_xlu_jepgturbo_utils_JpegNative_readFile2Byte(JNIEnv *env, jobject thiz, jstring file_path) {
 
     int file_width = 0;
     int file_height = 0;
@@ -281,4 +273,18 @@ Java_com_xlu_jepgturbo_JpegTurbo_readFile2Byte(JNIEnv *env, jobject thiz, jstrin
 
     return unchar_to_byteArray(env,dstBuf,file_size);
 
+}
+
+extern "C"
+JNIEXPORT jbyteArray JNICALL
+Java_com_xlu_jepgturbo_utils_JpegNative_compressBitmap2Byte(JNIEnv *env, jobject thiz,jobject bitmap, jint _width, jint _height,jint quality) {
+
+    jbyteArray result;
+    int res = jpegHelper.bitmap2Byte(env,bitmap,&result,_width,_height,quality);
+
+    if (res == 1){
+        return result;
+    } else {
+        return nullptr;
+    }
 }

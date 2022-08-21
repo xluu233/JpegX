@@ -255,7 +255,15 @@ int JpegHelper::compressJpeg2Jpeg(const char *filePath, const char *out_filePath
 }
 
 
-
+/**
+ * bitmap to file 测试ok
+ * @param data
+ * @param w
+ * @param h
+ * @param quality
+ * @param outfilename
+ * @return
+ */
 int JpegHelper::GenerateBitmap2Jpeg(BYTE *data, int w, int h, int quality, const char *outfilename) {
 
     struct jpeg_compress_struct jcs;
@@ -275,7 +283,6 @@ int JpegHelper::GenerateBitmap2Jpeg(BYTE *data, int w, int h, int quality, const
         return 0;
     }
 
-    LOGD("set jsc");
     jpeg_stdio_dest(&jcs, f);
     jcs.image_width = w;
     jcs.image_height = h;
@@ -366,7 +373,6 @@ int JpegHelper::write_jpeg_file(const char *filename, int image_height, int imag
     /*压缩初始化*/
     jpeg_create_compress(&cinfo);
 
-
     FILE *outfile = fopen(filename, "wb");
     if (outfile == nullptr) {
         LOGD("open file failed");
@@ -398,9 +404,61 @@ int JpegHelper::write_jpeg_file(const char *filename, int image_height, int imag
     return 1;
 }
 
-/*
+int JpegHelper::bitmap2Byte(JNIEnv *env, jobject bitmap, jbyteArray *output, int w, int h, int quality) {
+
+    AndroidBitmapInfo bitmapInfo;
+    int errorCode = 0;
+    if ((errorCode = AndroidBitmap_getInfo(env, reinterpret_cast<jobject>(bitmap), &bitmapInfo)) !=
+        ANDROID_BITMAP_RESULT_SUCCESS) {
+        LOGE("get bitmapInfo failed, code is %d", errorCode);
+        return 0;
+    }
+    if (bitmapInfo.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
+        LOGE("bitmap format is not supported");
+        return 0;
+    }
+    unsigned char *pixelData;
+    AndroidBitmap_lockPixels(env, bitmap, reinterpret_cast<void **>(&pixelData));
+
+    int width;
+    int height;
+    if (0 == w){
+        width = bitmapInfo.width;
+    } else{
+        width = w;
+    }
+
+    if (0 == h){
+        height = bitmapInfo.height;
+    } else{
+        height = h;
+    }
+
+    initHandle();
+
+    unsigned char *jpegBuff;
+    unsigned long jpegSize = 0;
+    LOGI("compressRgba8888ToJpeg start");
+    int compressResult = compressRgba8888ToJpeg(pixelData,width,height,&jpegBuff,&jpegSize,quality);
+    LOGI("compressRgba8888ToJpeg finished");
+    AndroidBitmap_unlockPixels(env, bitmap);
+
+    if (compressResult != 0) {
+        LOGE("compress failed , errorCode is %d", compressResult);
+        return 0;
+    } else {
+        *output = env->NewByteArray(jpegSize);
+        env->SetByteArrayRegion(*output, 0, jpegSize, reinterpret_cast<const jbyte *>(jpegBuff));
+        LOGE("compress success , jpegSize  %d", jpegSize);
+        free(jpegBuff);
+        return 1;
+    }
+}
+
 int JpegHelper::initHandle() {
-    handle = tjInitCompress();
+    if (handle == nullptr){
+        handle = tjInitCompress();
+    }
     return handle == nullptr ? JNI_FALSE : JNI_TRUE;
 }
 
@@ -416,4 +474,41 @@ int JpegHelper::destroyHandle() {
         return code;
     }
 }
-*/
+
+int JpegHelper::compressRgba8888ToJpeg(
+        const unsigned char *srcBuf,
+        int width,
+        int height,
+        unsigned char **jpegBuf,
+        unsigned long *jpegSize,
+        int quality){
+
+    int subsamp = TJSAMP_420;
+    int pixelFormat = TJPF_RGBA;
+
+    return tjCompress2(handle, srcBuf, width, width << 2, height, pixelFormat, jpegBuf, jpegSize, subsamp, quality, 0);
+}
+
+int JpegHelper::compressI420ToJpeg(const unsigned char *srcBuf, int width, int height,unsigned char **jpegBuf, unsigned long *jpegSize, int quality) {
+
+    const unsigned char *srcPlanes[3];
+    int strides[3];
+    srcPlanes[0] = srcBuf;
+    srcPlanes[1] = srcBuf + width * height;
+    srcPlanes[2] = srcBuf + width * height + width * height / 4;
+    strides[0] = width;
+    strides[1] = width / 2;
+    strides[2] = width / 2 ;
+
+    int subsamp = TJSAMP_420;
+
+    return tjCompressFromYUVPlanes(handle, srcPlanes, width, strides, height, subsamp, jpegBuf,jpegSize, quality, 0);
+}
+
+int JpegHelper::compressByteToByte(const unsigned char *srcBuf, int width, int height,
+                                   unsigned char **jpegBuf, unsigned long *jpegSize, int quality) {
+    int subsamp = TJSAMP_420;
+    int pixelFormat = TJPF_RGBA;
+
+    return tjCompress2(handle, srcBuf, width, width << 2, height, pixelFormat, jpegBuf, jpegSize, subsamp, quality, 0);
+}
