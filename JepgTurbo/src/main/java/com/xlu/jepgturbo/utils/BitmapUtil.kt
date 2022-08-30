@@ -5,6 +5,7 @@ import android.graphics.*
 import android.media.ExifInterface
 import android.net.Uri
 import android.provider.MediaStore
+import android.util.Log
 import java.io.ByteArrayOutputStream
 import java.io.File
 import java.io.IOException
@@ -60,6 +61,9 @@ internal object BitmapUtil {
     private fun getRotateDegree(path: String?): Float {
         var result = 0f
         if (path.isNullOrEmpty()) return result
+//        Log.d("endsWith",path.endsWith(".jpg",true).toString())
+//        Log.d("endsWith",path.endsWith(".jpeg",true).toString())
+//        if (!path.endsWith(".jpg",true) || !path.endsWith(".jpeg",true)) return result
 
         try {
             val exif = ExifInterface(path)
@@ -72,7 +76,7 @@ internal object BitmapUtil {
                 ExifInterface.ORIENTATION_ROTATE_180 -> result = 180f
                 ExifInterface.ORIENTATION_ROTATE_270 -> result = 270f
             }
-        } catch (ignore: IOException) {
+        } catch (ignore: Exception) {
             return result
         }
         return result

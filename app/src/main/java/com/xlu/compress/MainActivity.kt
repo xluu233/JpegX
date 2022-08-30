@@ -1,6 +1,7 @@
 package com.xlu.compress
 
 import android.Manifest
+import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -11,6 +12,7 @@ import com.xlu.compress.utils.*
 import com.xlu.jepgturbo.JpegX
 import com.xlu.jepgturbo.entitys.OutputFormat
 import com.xlu.jepgturbo.itf.CompressListener
+import com.xlu.jepgturbo.utils.toBitmap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
@@ -29,8 +31,12 @@ class MainActivity : AppCompatActivity() {
         getAssertBitmap(this@MainActivity)
     }
 
+//    private val testFile by lazy {
+//        getAssertFile(this@MainActivity)
+//    }
+    
     private val testFile by lazy {
-        getAssertFile(this@MainActivity)
+        File("/data/data/com.xlu.compress/files/test.jpg")
     }
 
 
@@ -51,16 +57,21 @@ class MainActivity : AppCompatActivity() {
 //            compressBitmap2Byte()
 
 
-            compressByte2Byte()
+            compressFile2File()
+//            compressFile2Bitmap()
+//            compressFile2Byte()
+
+
+//            compressByte2Byte()
 //            compressByte2File()
 
-//            compressFile2File()
         }
     }
 
 
     /**
-     * bitmap to file success
+     * TODO SUCCESS
+     * bitmap to file
      */
     private fun compressBitmap2File(){
         val outputFile = File(getExternalPicturesPath(),"${System.currentTimeMillis()}.jpg")
@@ -78,6 +89,7 @@ class MainActivity : AppCompatActivity() {
 
                 override fun onSuccess(result: String) {
                     Log.d(TAG, "onSuccess $result   压缩后文件大小:${FileSizeUtil.getAutoFolderOrFileSize(outputFile)}")
+                    showResult(result)
                 }
 
                 override fun onFailed(error: String) {
@@ -87,6 +99,11 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    /**
+     * TODO SUCCESS
+     * bitmap to file,dsl style
+     * @return
+     */
     private fun compressBitmapDSL() = MainScope().launch{
         val outputFile = File(getExternalPicturesPath(),"${System.currentTimeMillis()}.jpg")
         JpegX.params(
@@ -99,6 +116,7 @@ class MainActivity : AppCompatActivity() {
             },
             onSuccess = {
                 Log.d(TAG, "onSuccess $it   压缩后文件大小:${FileSizeUtil.getAutoFolderOrFileSize(outputFile)}")
+                showResult(it)
             },
             onFailed = {
 
@@ -108,6 +126,7 @@ class MainActivity : AppCompatActivity() {
 
 
     /**
+     * TODO SUCCESS
      * bitmap to byte success
      */
     private fun compressBitmap2Byte(){
@@ -126,10 +145,10 @@ class MainActivity : AppCompatActivity() {
             },
             onSuccess = {
                 Log.d(TAG, "onSuccess  压缩后 size:${it.size}  大小:${it.size/1024f/1024f} MB")
+                showResult(it)
             },
         )
     }
-
 
     private fun compressByte2File() {
         val inputByte = testFile.toByteArray() ?: return
@@ -211,6 +230,7 @@ class MainActivity : AppCompatActivity() {
             },
             onSuccess = {
                 Log.d(TAG, "onSuccess $it   压缩后文件大小:${FileSizeUtil.getAutoFolderOrFileSize(outputFile)}")
+                showResult(it)
             },
             onFailed = {
                 Log.e(TAG,"onFailed")
@@ -218,5 +238,57 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun compressFile2Byte() {
+        JpegX.params(
+            input = testFile,
+            outputType = OutputFormat.Byte
+        ).compress(listener = object :CompressListener<ByteArray>{
+            override fun onStart() {
+
+            }
+
+            override fun onSuccess(result: ByteArray) {
+                showResult(result)
+            }
+
+            override fun onFailed(error: String) {
+                Log.e(TAG,"onFailed")
+            }
+        })
+    }
+
+    /**
+     * TODO success
+     */
+    private fun compressFile2Bitmap() {
+        JpegX.params(
+            input = testFile,
+            outputType = OutputFormat.Bitmap
+        ).compress<Bitmap>(
+            async = true,
+            onStart = {
+            },
+            onSuccess = {
+                showResult(it)
+            },
+            onFailed = {
+                Log.e(TAG,"onFailed")
+            }
+        )
+    }
+
+    private fun showResult(bytes: ByteArray) = runOnUiThread{
+        binding.imageViewAfter.setImageBitmap(bytes.toBitmap())
+    }
+
+    private fun showResult(bitmap: Bitmap) = runOnUiThread{
+        binding.imageViewAfter.setImageBitmap(bitmap)
+    }
+
+    private fun showResult(filePath:String){
+        runOnUiThread {
+            binding.imageViewAfter.setImageURI(Uri.fromFile(File(filePath)))
+        }
+    }
 
 }

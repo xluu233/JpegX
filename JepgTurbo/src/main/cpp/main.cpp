@@ -8,7 +8,7 @@
 #include <cstdint>
 #include <ctime>
 #include <zconf.h>
-#include <ctime>
+#include <sys/time.h>
 #include <vector>
 
 #include "jpeghelper/JpegHelper.h"
@@ -208,7 +208,8 @@ Java_com_xlu_jepgturbo_utils_JpegNative_compressFile(JNIEnv *env, jobject thiz, 
     unsigned char *dstBuf = NULL;
     const char *location = env->GetStringUTFChars(file_path,NULL);
 
-    //JpegHelper jpegHelper;
+//    jpegHelper.initHandle();
+
     int result = jpegHelper.read_jpeg_file(location,&dstBuf, &file_size, &file_width, &file_height);
     if(result==0){
         LOGD("read file error");
@@ -242,6 +243,7 @@ Java_com_xlu_jepgturbo_utils_JpegNative_compressFile2File(JNIEnv *env, jobject t
     const char *location = env->GetStringUTFChars(file_path,NULL);
     const char *location_out = env->GetStringUTFChars(output_file_path,NULL);
 
+    jpegHelper.initHandle();
     int result = jpegHelper.compressJpeg2Jpeg(location,location_out,quality,width,height);
 
     if(result==0){

@@ -1,7 +1,9 @@
 package com.xlu.jepgturbo.utils
 
 import android.graphics.Bitmap
+import android.graphics.Bitmap.CompressFormat
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
 import android.media.ExifInterface
 import java.io.*
 import java.lang.ref.SoftReference
@@ -52,4 +54,3 @@ fun ByteArray.toBitmap() : Bitmap?{
     input.close()
     return bitmap
 }
-

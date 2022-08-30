@@ -89,11 +89,11 @@ object JpegNative {
      * @param quality
      * @return
      */
-    private external fun compressFile(
+    external fun compressFile(
         filePath:String,
-        width: Int=0,
-        height: Int=0,
-        quality: Int = 60,
+        width: Int,
+        height: Int,
+        quality: Int,
     ):Boolean
 
 

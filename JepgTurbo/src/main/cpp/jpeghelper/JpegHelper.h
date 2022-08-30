@@ -33,8 +33,6 @@ class JpegHelper {
 
     public:
 
-//    tjhandle handle;
-
     int initHandle();
     int destroyHandle();
 

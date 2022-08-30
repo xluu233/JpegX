@@ -7,6 +7,7 @@ import com.xlu.jepgturbo.entitys.OutputFormat
 import com.xlu.jepgturbo.itf.CompressListener
 import com.xlu.jepgturbo.utils.BitmapUtil
 import com.xlu.jepgturbo.utils.JpegNative
+import com.xlu.jepgturbo.utils.toByteArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -140,12 +141,12 @@ class Compressor(private val params: CompressParams) {
                         }
                     }
                     OutputFormat.Byte -> {
-//                        params.outputByte = file2Byte(File(params.inputFilePath!!))
-//                        if (params.outputByte != null){
-//                            listener?.onSuccess(params.outputByte as T)
-//                        }else{
-//                            listener?.onFailed("file to byte error")
-//                        }
+                        params.outputByte = File(params.inputFilePath!!).toByteArray()
+                        if (params.outputByte != null){
+                            listener?.onSuccess(params.outputByte as T)
+                        }else{
+                            listener?.onFailed("file to byte error")
+                        }
                     }
                     else -> {
                         listener?.onFailed("unknow action")
@@ -300,6 +301,12 @@ class Compressor(private val params: CompressParams) {
             width = params.width,
             height = params.height,
             quality = params.quality)
+
+//        val result: Boolean = JpegNative.compressFile(
+//            filePath = params.inputFilePath!!,
+//            width = params.width,
+//            height = params.height,
+//            quality = params.quality)
 
         //复制原文件exif信息到输出文件
         if (result){
