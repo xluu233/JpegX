@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import com.xlu.compress.databinding.ActivityMainBinding
@@ -12,11 +13,10 @@ import com.xlu.compress.utils.*
 import com.xlu.jepgturbo.JpegX
 import com.xlu.jepgturbo.entitys.OutputFormat
 import com.xlu.jepgturbo.itf.CompressListener
+import com.xlu.jepgturbo.utils.JpegNative
 import com.xlu.jepgturbo.utils.toBitmap
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.io.File
 
 
@@ -34,9 +34,10 @@ class MainActivity : AppCompatActivity() {
 //    private val testFile by lazy {
 //        getAssertFile(this@MainActivity)
 //    }
-    
+
     private val testFile by lazy {
-        File("/data/data/com.xlu.compress/files/test.jpg")
+        File("/data/data/com.xlu.compress/files/temp.jpg")
+//        File("/data/data/com.xlu.compress/files/Snipaste_2022-08-30_12-28-41.jpg")
     }
 
 
@@ -48,7 +49,7 @@ class MainActivity : AppCompatActivity() {
         ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA, Manifest.permission.WRITE_EXTERNAL_STORAGE),1001)
 
         //初始化框架
-        JpegX.init(this)
+        JpegX.init()
 
 
         binding.startCompress.setOnClickListener {
@@ -57,7 +58,7 @@ class MainActivity : AppCompatActivity() {
 //            compressBitmap2Byte()
 
 
-            compressFile2File()
+//            compressFile2File()
 //            compressFile2Bitmap()
 //            compressFile2Byte()
 
@@ -224,7 +225,7 @@ class MainActivity : AppCompatActivity() {
             output = outputFile,
             outputType = OutputFormat.File
         ).compress<String>(
-            async = false,
+            async = true,
             onStart = {
                 Log.d(TAG, "onStart，压缩前文件大小：${FileSizeUtil.getAutoFolderOrFileSize(testFile)}")
             },

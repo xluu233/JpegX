@@ -1,5 +1,6 @@
 package com.xlu.jepgturbo
 
+import android.content.Context
 import android.media.ExifInterface
 import android.util.Log
 import com.xlu.jepgturbo.entitys.CompressParams
@@ -7,6 +8,7 @@ import com.xlu.jepgturbo.entitys.OutputFormat
 import com.xlu.jepgturbo.itf.CompressListener
 import com.xlu.jepgturbo.utils.BitmapUtil
 import com.xlu.jepgturbo.utils.JpegNative
+import com.xlu.jepgturbo.utils.getTempFile
 import com.xlu.jepgturbo.utils.toByteArray
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -141,6 +143,16 @@ class Compressor(private val params: CompressParams) {
                         }
                     }
                     OutputFormat.Byte -> {
+                        //先创建temp file压缩
+                        /*params.outputFilePath = getTempFile(context).absolutePath
+                        val result = JpegNative.compressFile(
+                            srcFilePath = params.inputFilePath!!,
+                            destFilePath = params.outputFilePath!!,
+                            width = params.width,
+                            height = params.height,
+                            quality = params.quality)*/
+
+                        //temp file to byte
                         params.outputByte = File(params.inputFilePath!!).toByteArray()
                         if (params.outputByte != null){
                             listener?.onSuccess(params.outputByte as T)
@@ -294,22 +306,15 @@ class Compressor(private val params: CompressParams) {
             params.outputFilePath = params.inputFilePath
             Log.e(TAG,"outputFilePath is null, compression will overwrite the input file")
         }
-
-        val result: Boolean = JpegNative.compressFile2File(
-            filePath = params.inputFilePath!!,
-            outputFilePath = params.outputFilePath!!,
+        val result = JpegNative.compressFile(
+            srcFilePath = params.inputFilePath!!,
+            destFilePath = params.outputFilePath!!,
             width = params.width,
             height = params.height,
             quality = params.quality)
 
-//        val result: Boolean = JpegNative.compressFile(
-//            filePath = params.inputFilePath!!,
-//            width = params.width,
-//            height = params.height,
-//            quality = params.quality)
-
-        //复制原文件exif信息到输出文件
-        if (result){
+        //复制原文件exif信息到输出文件,这里消耗2-4s时间
+        if (result && params.reserveExifInfo){
             val target = ExifInterface(params.outputFilePath!!)
             sourceExifInterface.javaClass.declaredFields.forEach { member ->//获取ExifInterface类的属性并遍历
                 member.isAccessible = true

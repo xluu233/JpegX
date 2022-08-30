@@ -4,6 +4,7 @@ cmake_minimum_required(VERSION 3.4.1)
 
 include_directories(#将头文件所在目录告诉编译器，在里面添加
         ${CMAKE_SOURCE_DIR}/../cpp/include
+        ${CMAKE_SOURCE_DIR}/../cpp/utils
         )
 
 
@@ -14,6 +15,8 @@ add_library( # Sets the name of the library.
         main.cpp
         jpeghelper/JpegHelper.h
         jpeghelper/JpegHelper.cpp
+        utils/JniUtil.cpp
+        utils/JniUtil.h
         )
 
 

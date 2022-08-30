@@ -21,7 +21,7 @@
 #include "jmorecfg.h"
 #include "jpeglib.h"
 #include "turbojpeg.h"
-#include "logcat.h"
+#include "../utils/logcat.h"
 
 
 typedef uint8_t BYTE;
@@ -59,7 +59,7 @@ class JpegHelper {
     int GenerateBitmap2Buffer(BYTE *data, int w, int h, int quality, JSAMPLE **rgb_buffer);
 
     /*直接压缩Jpeg文件*/
-    int compressJpeg2Jpeg(const char *filePath,const char *out_filePath,int quality, int width, int height);
+    int file2file(const char *filePath, const char *out_filePath, int quality, int width, int height);
 
     int bitmap2Byte(JNIEnv *env, jobject bitmap,jbyteArray *output, int w, int h, int quality);
 

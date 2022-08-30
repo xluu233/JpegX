@@ -12,10 +12,12 @@
 #include <vector>
 
 #include "jpeghelper/JpegHelper.h"
+#include "utils/JniUtil.h"
 
 //
 // Created by xlu on 2021/7/10.
 //
+
 
 typedef uint8_t BYTE;
 typedef struct my_error_mgr *my_error_ptr;
@@ -23,42 +25,19 @@ typedef struct my_error_mgr *my_error_ptr;
 JpegHelper jpegHelper;
 
 
-//get system time
-long getCurrentTime()
-{
-    struct timeval tv;
-    gettimeofday(&tv,NULL);
-    return tv.tv_sec * 1000 + tv.tv_usec / 1000;
+
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_xlu_jepgturbo_utils_JpegNative_initHandler(JNIEnv *env, jobject thiz) {
+    LOGE("initHandle()");
+    jpegHelper.initHandle();
 }
 
-//jbyteArray to char
-char* ConvertJByteaArrayToChars(JNIEnv *env, jbyteArray bytearray)
-{
-    char *chars;
-    jbyte *bytes;
-    bytes = env->GetByteArrayElements(bytearray, 0);
-    int chars_len = env->GetArrayLength(bytearray);
-    chars = new char[chars_len + 1];
-    memset(chars,0,chars_len + 1);
-    memcpy(chars, bytes, chars_len);
-    chars[chars_len] = 0;
-
-    env->ReleaseByteArrayElements(bytearray, bytes, 0);
-    free(chars);
-    return chars;
-}
-
-unsigned char* byteArray_to_unchar(JNIEnv *env, jbyteArray array) {
-    int len = env->GetArrayLength (array);
-    unsigned char* buf = new unsigned char[len];
-    env->GetByteArrayRegion (array, 0, len, reinterpret_cast<jbyte*>(buf));
-    return buf;
-}
-
-jbyteArray unchar_to_byteArray(JNIEnv *env, unsigned char *buf, int len) {
-    jbyteArray array = env->NewByteArray(len);
-    env->SetByteArrayRegion(array, 0, len, reinterpret_cast<jbyte *>(buf));
-    return array;
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_xlu_jepgturbo_utils_JpegNative_destroyHandler(JNIEnv *env, jobject thiz) {
+    LOGE("destroyHandle()");
+    jpegHelper.destroyHandle();
 }
 
 
@@ -67,7 +46,6 @@ JNIEXPORT jboolean JNICALL
 Java_com_xlu_jepgturbo_utils_JpegNative_compressBitmap(JNIEnv *env, jobject thiz, jobject bitmap, jint _width, jint _height, jint quality, jstring filePath) {
 
     const char *location = env->GetStringUTFChars(filePath,NULL);
-
     int ret;
     int color;
     BYTE r;
@@ -91,13 +69,13 @@ Java_com_xlu_jepgturbo_utils_JpegNative_compressBitmap(JNIEnv *env, jobject thiz
 
     int width;
     int height;
-    if (0 == _width){
+    if (_width <= 0){
         width = bitmapInfo.width;
     } else{
         width = _width;
     }
 
-    if (0 == _height){
+    if (_height <= 0){
         height = bitmapInfo.height;
     } else{
         height = _height;
@@ -154,8 +132,6 @@ Java_com_xlu_jepgturbo_utils_JpegNative_compressByte2Byte(JNIEnv *env, jobject t
 
     LOGI("jbyte %d", sizeof(rgbBuffer));
 
-    jpegHelper.initHandle();
-
     LOGI("compressRgba8888ToJpeg start");
     int compressResult = jpegHelper.compressByteToByte(srcBuf, width, height, &dstBuf, &jpegSize, quality);
     LOGI("compressRgba8888ToJpeg finished");
@@ -198,53 +174,47 @@ Java_com_xlu_jepgturbo_utils_JpegNative_compressByte2File(JNIEnv *env, jobject t
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_xlu_jepgturbo_utils_JpegNative_compressFile(JNIEnv *env, jobject thiz, jstring file_path, jint width, jint height, jint quality) {
+Java_com_xlu_jepgturbo_utils_JpegNative_compressFile(JNIEnv *env, jobject thiz, jstring file_path,jstring output_file_path, jint _width, jint _height, jint quality) {
 
-    LOGD("compressFile");
     int file_width = 0;
     int file_height = 0;
     int file_size = 0;
 
     unsigned char *dstBuf = NULL;
-    const char *location = env->GetStringUTFChars(file_path,NULL);
+    const char *location_src = env->GetStringUTFChars(file_path, NULL);
+    const char *location_dest = env->GetStringUTFChars(output_file_path, NULL);
 
-//    jpegHelper.initHandle();
-
-    int result = jpegHelper.read_jpeg_file(location,&dstBuf, &file_size, &file_width, &file_height);
-    if(result==0){
+    int result_read = jpegHelper.read_jpeg_file(location_src, &dstBuf, &file_size, &file_width, &file_height);
+    if(result_read == 0){
         LOGD("read file error");
+        return result_read;
     } else{
         LOGD("read file success");
     }
 
-    int result2;
-    if (width==0 || height==0){
-        result2 = jpegHelper.write_jpeg_file(location, file_height, file_width, quality, dstBuf);
-    } else{
-        result2 = jpegHelper.write_jpeg_file(location, height, width, quality, dstBuf);
+    int width = _width;
+    int height = _height;
+    if (width <= 0){
+        width = file_width;
+    }
+    if (height <= 0){
+        height = file_height;
     }
 
-    if(result2==0){
-        LOGD("write file error");
-    } else{
-        LOGD("write file success");
-    }
+    int result_write = jpegHelper.write_jpeg_file(location_dest, height, width, quality, dstBuf);
 
-    return result2;
+    return result_read && result_write;
 }
 
 extern "C"
 JNIEXPORT jboolean JNICALL
-Java_com_xlu_jepgturbo_utils_JpegNative_compressFile2File(JNIEnv *env, jobject thiz, jstring file_path,
-                                               jstring output_file_path, jint width, jint height,
-                                               jint quality) {
+Java_com_xlu_jepgturbo_utils_JpegNative_compressFile2File(JNIEnv *env, jobject thiz, jstring file_path,jstring output_file_path, jint width, jint height,jint quality) {
 
     LOGD("compressFile2File");
     const char *location = env->GetStringUTFChars(file_path,NULL);
     const char *location_out = env->GetStringUTFChars(output_file_path,NULL);
 
-    jpegHelper.initHandle();
-    int result = jpegHelper.compressJpeg2Jpeg(location,location_out,quality,width,height);
+    int result = jpegHelper.file2file(location, location_out, quality, width, height);
 
     if(result==0){
         LOGD("compress jpeg file error");
@@ -265,7 +235,7 @@ Java_com_xlu_jepgturbo_utils_JpegNative_readFile2Byte(JNIEnv *env, jobject thiz,
     unsigned char *dstBuf = NULL;
     const char *location = env->GetStringUTFChars(file_path,NULL);
 
-    int result = jpegHelper.read_jpeg_file(location,&dstBuf, &file_size, &file_width, &file_height);
+    int result = jpegHelper.read_jpeg_file(location, &dstBuf, &file_size, &file_width, &file_height);
 
     if(result==0){
         LOGD("convert error");

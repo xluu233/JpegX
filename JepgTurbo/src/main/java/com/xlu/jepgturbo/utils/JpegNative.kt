@@ -10,14 +10,15 @@ import android.graphics.Bitmap
  */
 object JpegNative {
 
-
-    init {
-        System.loadLibrary("jepg_compress")
-    }
-
     fun init(){
         System.loadLibrary("jepg_compress")
+        initHandler()
     }
+
+    external fun initHandler()
+
+    external fun destroyHandler()
+
 
     /**
      * TODO 输入：Bitmap   输出：File
@@ -28,9 +29,9 @@ object JpegNative {
      */
     external fun compressBitmap(
         bitmap: Bitmap,
-        width: Int,
-        height: Int,
-        quality: Int,
+        width: Int = -1,
+        height: Int = -1,
+        quality: Int = 60,
         outputFilePath: String,
     ):Boolean
 
@@ -40,17 +41,17 @@ object JpegNative {
      */
     external fun compressBitmap2Byte(
         bitmap: Bitmap,
-        width: Int,
-        height: Int,
-        quality: Int,
+        width: Int = -1,
+        height: Int = -1,
+        quality: Int = 60,
     ):ByteArray?
 
 
     /**
      * TODO 输入：byte[]   输出：byte[]
      * @param byte
-     * @param width
-     * @param height
+     * @param width byte的width必传
+     * @param height byte的height必传
      * @param quality
      * @return
      */
@@ -58,15 +59,15 @@ object JpegNative {
         byte: ByteArray,
         width: Int,
         height: Int,
-        quality: Int,
+        quality: Int = 60,
     ):ByteArray?
 
 
     /**
      * TODO 输入：byte[]   输出：File
      * @param byte
-     * @param width
-     * @param height
+     * @param width byte的width必传
+     * @param height byte的height必传
      * @param quality
      * @param outputFilePath
      * @return
@@ -75,25 +76,27 @@ object JpegNative {
         byte: ByteArray,
         width: Int,
         height: Int,
-        quality: Int,
+        quality: Int = 60,
         outputFilePath: String,
     ):Boolean
 
 
     /**
-     * TODO 输入:Jpeg文件，输出：覆盖原Jpeg文件
+     * TODO 输入:Jpeg文件，输出：Jpeg文件
      * 相机照片可能会与原始角度不一致，解决方案：复制原文件的Exif信息
-     * @param filePath 文件路径
+     * @param srcFilePath 文件路径
+     * @param destFilePath 输出文件路径
      * @param width
      * @param height
      * @param quality
      * @return
      */
     external fun compressFile(
-        filePath:String,
-        width: Int,
-        height: Int,
-        quality: Int,
+        srcFilePath:String,
+        destFilePath: String,
+        width: Int = -1,
+        height: Int = -1,
+        quality: Int = 60,
     ):Boolean
 
 
@@ -110,9 +113,9 @@ object JpegNative {
     external fun compressFile2File(
         filePath:String,
         outputFilePath: String,
-        width: Int,
-        height: Int,
-        quality: Int,
+        width: Int = -1,
+        height: Int = -1,
+        quality: Int = 60,
     ):Boolean
 
 

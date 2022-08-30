@@ -1,5 +1,6 @@
 package com.xlu.jepgturbo.utils
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Bitmap.CompressFormat
 import android.graphics.BitmapFactory
@@ -53,4 +54,17 @@ fun ByteArray.toBitmap() : Bitmap?{
     val bitmap: Bitmap?= softRef.get()
     input.close()
     return bitmap
+}
+
+
+fun getAppCachePath(context: Context, subDir: String = "JpegX"): String {
+    val path = StringBuilder(context.cacheDir.absolutePath)
+    path.append(File.separator).append(subDir).append(File.separator)
+    val dir = File(path.toString())
+    if (!dir.exists()) dir.mkdir()
+    return path.toString()
+}
+
+fun getTempFile(context: Context,fileName:String = "${System.currentTimeMillis()}.jpg") :File{
+    return File(getAppCachePath(context),fileName)
 }

@@ -49,7 +49,10 @@ data class CompressParams(
     var maxSize: Int = 1024,
 
     //文件缩放
-    var scale:Float = 1.0f
+    var scale:Float = 1.0f,
+
+    //保留exif信息
+    var reserveExifInfo: Boolean = false
 
 ) {
 

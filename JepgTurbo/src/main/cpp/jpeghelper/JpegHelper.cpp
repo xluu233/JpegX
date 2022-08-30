@@ -20,12 +20,32 @@ void my_error_exit(j_common_ptr cinfo) {
 }
 
 
+int JpegHelper::initHandle() {
+    if (handle == nullptr){
+        handle = tjInitCompress();
+    }
+    return handle == nullptr ? JNI_FALSE : JNI_TRUE;
+}
+
+int JpegHelper::destroyHandle() {
+    if (handle == nullptr) {
+        return -1;
+    }
+    int code = 0;
+    if ((code = tjDestroy(handle)) == 0) {
+        handle = nullptr;
+        return JNI_TRUE;
+    } else {
+        return code;
+    }
+}
 
 int JpegHelper::read_jpeg_file(const char *filePath, JSAMPLE **rgb_buffer, int *size, int *width, int *height) {
 
     LOGD("start read jpeg file path is %s", filePath);
-    struct jpeg_decompress_struct cinfo;
-    struct jpeg_error_mgr jerr;
+
+    struct jpeg_decompress_struct cinfo{};
+    struct jpeg_error_mgr jerr{};
 
     int nComponent = 4;
     JSAMPARRAY buffer;
@@ -49,7 +69,9 @@ int JpegHelper::read_jpeg_file(const char *filePath, JSAMPLE **rgb_buffer, int *
 
     jpeg_stdio_src(&cinfo, fp);
 
-    jpeg_read_header(&cinfo, TRUE);
+    //png图片读取失败
+    //FORTIFY: pthread_mutex_lock called on a destroyed mutex (0x72ea9ac6d8)
+    jpeg_read_header(&cinfo, FALSE);
 
     cinfo.out_color_components = nComponent;
     cinfo.out_color_space = JCS_EXT_RGBA; // 设置输出格式
@@ -57,10 +79,8 @@ int JpegHelper::read_jpeg_file(const char *filePath, JSAMPLE **rgb_buffer, int *
     jpeg_start_decompress(&cinfo);
 
     row_stride = cinfo.image_width << 2;
-
     *width = cinfo.image_width;
     *height = cinfo.image_height;
-
     rgb_size = row_stride * cinfo.output_height; // 总大小
 
     *size = rgb_size;
@@ -141,7 +161,7 @@ int JpegHelper::read_jpeg_file(const char *filePath, JSAMPLE **rgb_buffer) {
 }
 
 
-int JpegHelper::compressJpeg2Jpeg(const char *filePath, const char *out_filePath, int quality, int width,int height) {
+int JpegHelper::file2file(const char *filePath, const char *out_filePath, int quality, int width, int height) {
 
     int nComponent = 4;
 
@@ -217,13 +237,13 @@ int JpegHelper::compressJpeg2Jpeg(const char *filePath, const char *out_filePath
     int compress_width;
     int compress_height;
 
-    if (width==0){
+    if (width <= 0){
         compress_width = file_width;
     } else{
         compress_width = width;
     }
 
-    if (height==0){
+    if (height <= 0){
         compress_height = file_height;
     } else{
         compress_height = height;
@@ -422,19 +442,17 @@ int JpegHelper::bitmap2Byte(JNIEnv *env, jobject bitmap, jbyteArray *output, int
 
     int width;
     int height;
-    if (0 == w){
+    if (w <= 0){
         width = bitmapInfo.width;
     } else{
         width = w;
     }
 
-    if (0 == h){
+    if (h <= 0){
         height = bitmapInfo.height;
     } else{
         height = h;
     }
-
-    initHandle();
 
     unsigned char *jpegBuff;
     unsigned long jpegSize = 0;
@@ -455,25 +473,6 @@ int JpegHelper::bitmap2Byte(JNIEnv *env, jobject bitmap, jbyteArray *output, int
     }
 }
 
-int JpegHelper::initHandle() {
-    if (handle == nullptr){
-        handle = tjInitCompress();
-    }
-    return handle == nullptr ? JNI_FALSE : JNI_TRUE;
-}
-
-int JpegHelper::destroyHandle() {
-    if (handle == nullptr) {
-        return -1;
-    }
-    int code = 0;
-    if ((code = tjDestroy(handle)) == 0) {
-        handle = nullptr;
-        return JNI_TRUE;
-    } else {
-        return code;
-    }
-}
 
 int JpegHelper::compressRgba8888ToJpeg(
         const unsigned char *srcBuf,
@@ -505,8 +504,7 @@ int JpegHelper::compressI420ToJpeg(const unsigned char *srcBuf, int width, int h
     return tjCompressFromYUVPlanes(handle, srcPlanes, width, strides, height, subsamp, jpegBuf,jpegSize, quality, 0);
 }
 
-int JpegHelper::compressByteToByte(const unsigned char *srcBuf, int width, int height,
-                                   unsigned char **jpegBuf, unsigned long *jpegSize, int quality) {
+int JpegHelper::compressByteToByte(const unsigned char *srcBuf, int width, int height,unsigned char **jpegBuf, unsigned long *jpegSize, int quality) {
     int subsamp = TJSAMP_420;
     int pixelFormat = TJPF_RGBA;
 

@@ -1,5 +1,6 @@
 package com.xlu.jepgturbo
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.Bitmap
 import com.xlu.jepgturbo.entitys.CompressParams
@@ -27,31 +28,10 @@ object JpegX {
     /**
      * 初始化jni
      */
-    fun init(context: Context) {
+    fun init() {
         if (!isInitialized) {
             JpegNative.init()
         }
-    }
-
-
-    suspend fun params2(
-        input: Any,
-        output: Any? = null,
-        outputType: OutputFormat? = null,
-        width: Int = -1,
-        height: Int = -1,
-        scale: Float = 1.0f,
-        quality: Int = 60,
-        maxSize: Int = 1024,
-    ): Compressor = withContext(Dispatchers.IO) {
-        return@withContext initParams(input,
-            output,
-            outputType,
-            width,
-            height,
-            scale,
-            quality,
-            maxSize)
     }
 
     fun params(
@@ -63,6 +43,7 @@ object JpegX {
         scale: Float = 1.0f,
         quality: Int = 60,
         maxSize: Int = 1024,
+        exif:Boolean = false
     ): Compressor{
         return initParams(input,
             output,
@@ -71,7 +52,8 @@ object JpegX {
             height,
             scale,
             quality,
-            maxSize)
+            maxSize,
+            exif)
     }
 
 
@@ -84,6 +66,7 @@ object JpegX {
         scale: Float = 1.0f,
         quality: Int = 60,
         maxSize: Int = 1024,
+        exif: Boolean
     ): Compressor {
         val params = CompressParams()
 
@@ -139,6 +122,7 @@ object JpegX {
         params.scale = scale
         params.maxSize = maxSize
         params.quality = quality
+        params.reserveExifInfo = exif
 
         return Compressor(params)
     }
